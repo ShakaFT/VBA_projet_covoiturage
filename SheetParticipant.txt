@@ -1,0 +1,17 @@
+Option Explicit
+
+'******************************************************************************
+' Cette procédure permet l'insertion de l'idTrajet et du pseudo du passager, qui
+' vient de rejoindre un trajet, dans la TableParticipant
+'******************************************************************************
+
+Public Sub ParticiperTrajet(ByVal pseudoPassager As String, ByVal idTrajet As Long)
+    
+    Dim ligne As Long
+    
+    ligne = IIf(IsEmpty(SheetParticipant.Range("TableParticipant[idTrajet]")(1)), 1, SheetParticipant.Range("TableParticipant").Rows.Count + 1)
+    SheetParticipant.Range("TableParticipant[idTrajet]")(ligne) = idTrajet
+    SheetParticipant.Range("TableParticipant[idUsager]")(ligne) = pseudoPassager
+    
+End Sub
+

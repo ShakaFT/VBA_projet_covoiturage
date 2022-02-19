@@ -1,0 +1,105 @@
+Option Explicit
+'******************************************************************************
+' Cette fonction permet d'afficher, dans la TableTrajet, les informations du trajet
+' créé par l'utilisateur
+'******************************************************************************
+
+Public Function CreerTrajet(ByVal dateDebut As String, ByVal heureDepart As String, ByVal dateFin As String, ByVal heureArrivee As String, _
+    ByVal nbPlaces As String, ByVal prix As String, ByVal villeDepart As String, ByVal villeArrivee As String, ByVal pseudoConducteur) As Boolean
+
+    Dim ligne As Long
+    
+    If IsEmpty(SheetTrajet.Range("TableTrajet[idTrajet]")(1)) Then
+        ligne = 1
+        SheetTrajet.Range("TableTrajet[idTrajet]")(ligne) = 1
+    Else
+        ligne = SheetTrajet.Range("TableTrajet").Rows.Count + 1
+        SheetTrajet.Range("TableTrajet[idTrajet]")(ligne) = SheetTrajet.Range("TableTrajet[idTrajet]")(ligne - 1) + 1
+    End If
+    
+    With SheetTrajet
+    .Range("TableTrajet[dateDebut]")(ligne) = DateValue(dateDebut)
+    .Range("TableTrajet[heureDebut]")(ligne) = heureDepart
+    .Range("TableTrajet[dateFin]")(ligne) = DateValue(dateFin)
+    .Range("TableTrajet[heureFin]")(ligne) = heureArrivee
+    .Range("TableTrajet[nbPlacesDisponibles]")(ligne) = nbPlaces
+    .Range("TableTrajet[prix]")(ligne) = prix
+    .Range("TableTrajet[nomVilleDepart]")(ligne) = villeDepart
+    .Range("TableTrajet[nomVilleArrivee]")(ligne) = villeArrivee
+    .Range("TableTrajet[pseudoConducteur]")(ligne) = pseudoConducteur
+    End With
+    
+ End Function
+
+'******************************************************************************
+' Cette fonction permet de vérifier si l'utilisateur a déjà prévu un trajet au
+' même moment que celui qu'il souhaite créer/rejoindre
+' Il récupère en paramètres les dates/heures du trajet qu'il souhaite créer/rejoindre
+' Retourne True si l'utilisateur n'a prévu aucun trajet ou False dans le cas contraire
+'******************************************************************************
+
+Public Function VerifierDisponibilite(ByVal dateDepart As Date, ByVal dateArrivee As Date, ByVal heureDepart As Date, ByVal heureArrivee As Date, _
+                                 pseudoConnecte As String) As Boolean
+    
+    Dim pseudoConducteur As String, idUsager As String
+    Dim ligne As Long, ligne2 As Long, ligne3 As Long, idTrajet As Long
+    Dim dateDebut As Date, dateFin As Date
+    
+    If IsEmpty(SheetTrajet.Range("TableTrajet[idTrajet]")(1)) Then
+        VerifierDisponibilite = True
+        Exit Function
+    End If
+    
+' dateDepart/Arrivee : trajet qu'il souhaite créer/rejoindre
+' dateDebut/Fin : trajet auquel il participe déjà
+    
+    dateDepart = CDate(dateDepart & " " & Format(heureDepart, "hh:mm"))
+    dateArrivee = CDate(dateArrivee & " " & Format(heureArrivee, "hh:mm"))
+
+' On cherche si l'utilisateur a déjà un trajet auquel il est conducteur au même créneau que celui qu'il souhaite créer/rejoindre
+
+    For ligne = 1 To SheetTrajet.Range("TableTrajet[idTrajet]").Rows.Count
+        pseudoConducteur = SheetTrajet.Range("TableTrajet[pseudoConducteur]")(ligne)
+        dateDebut = CDate(SheetTrajet.Range("TableTrajet[dateDebut]")(ligne) & " " & Format(SheetTrajet.Range("TableTrajet[heureDebut]")(ligne), "hh:mm"))
+        dateFin = CDate(SheetTrajet.Range("TableTrajet[dateFin]")(ligne) & " " & Format(SheetTrajet.Range("TableTrajet[heureFin]")(ligne), "hh:mm"))
+        
+        If pseudoConnecte = pseudoConducteur And ((dateDepart >= dateDebut And dateDepart < dateFin) _
+        Or (dateArrivee > dateDebut And dateArrivee <= dateFin) Or (dateDepart <= dateDebut And dateArrivee >= dateFin) _
+        Or (DateValue(dateArrivee) = DateValue(dateDebut) And Hour(TimeValue(dateArrivee)) = Hour(TimeValue(dateDebut)) _
+        And Mid(Format(dateArrivee, "hh:mm"), 4, 2) <> "00")) Then
+            VerifierDisponibilite = False
+            Exit Function
+        End If
+    Next ligne
+    
+' On cherche si l'utilisateur a déjà un trajet auquel il est passager au même créneau que celui qu'il souhaite créer/rejoindre
+    
+    For ligne2 = 1 To SheetParticipant.Range("TableParticipant[idTrajet]").Rows.Count
+        idUsager = SheetParticipant.Range("TableParticipant[idUsager]")(ligne2)
+        
+        If idUsager = pseudoConnecte Then
+            idTrajet = SheetParticipant.Range("TableParticipant[idTrajet]")(ligne2)
+            ligne3 = 0
+            
+            Do
+                ligne3 = ligne3 + 1
+            Loop Until idTrajet = SheetTrajet.Range("TableTrajet[idTrajet]")(ligne3)
+            
+            dateDebut = CDate(SheetTrajet.Range("TableTrajet[dateDebut]")(ligne3) & " " & _
+                        Format(SheetTrajet.Range("TableTrajet[heureDebut]")(ligne3), "hh:mm"))
+            dateFin = CDate(SheetTrajet.Range("TableTrajet[dateFin]")(ligne3) & " " & _
+                      Format(SheetTrajet.Range("TableTrajet[heureFin]")(ligne3), "hh:mm"))
+            
+            If ((dateDepart >= dateDebut And dateDepart < dateFin) Or (dateArrivee > dateDebut And dateArrivee <= dateFin) _
+            Or (dateDepart <= dateDebut And dateArrivee >= dateFin) _
+            Or (DateValue(dateArrivee) = DateValue(dateDebut) And Hour(TimeValue(dateArrivee)) = Hour(TimeValue(dateDebut)) _
+            And Mid(Format(dateArrivee, "hh:mm"), 4, 2) <> "00")) Then
+                VerifierDisponibilite = False
+                Exit Function
+            End If
+        End If
+    Next ligne2
+    
+    VerifierDisponibilite = True
+    
+End Function

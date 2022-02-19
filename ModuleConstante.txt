@@ -1,0 +1,5 @@
+Option Explicit
+
+Public Const HEURE_DEBUT As Date = #12:00:00 AM#
+Public Const NB_CRENEAU As Long = 24
+Public Const NB_JOUR As Long = 7

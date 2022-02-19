@@ -1,0 +1,178 @@
+Option Explicit
+
+'******************************************************************************
+' Cette procédure permet d'afficher, dans la TableTrajetsDisponibles,
+' les trajets demandés par l'utilisateur
+' Elle prend comme paramètre les infos du trajet qui correspond à la demande de l'utilisateur
+'******************************************************************************
+
+Public Sub AfficherTrajetsDisponibles(ByVal idTrajet As String, ByVal villeDepart As String, ByVal villeArrivee As String, ByVal dateDepart As Date, _
+       ByVal heureDepart As Date, ByVal dateArrivee As Date, ByVal heureArrivee As Date, ByVal nbPlaceDisponible As String, ByVal prix As String)
+    
+    Dim ligne As Long
+    
+    ligne = IIf(IsEmpty(SheetTrajetsDisponibles.Range("TableTrajetsDisponibles[idTrajet]")(1)), 1, _
+                SheetTrajetsDisponibles.Range("TableTrajetsDisponibles").Rows.Count + 1)
+    
+    With SheetTrajetsDisponibles
+    .Range("TableTrajetsDisponibles[idTrajet]")(ligne) = idTrajet
+    .Range("TableTrajetsDisponibles[Ville de départ]")(ligne) = villeDepart
+    .Range("C1").value = "Ville darrivée"
+    .Range("TableTrajetsDisponibles[Ville darrivée]")(ligne) = villeArrivee
+    .Range("C1").value = "Ville d'arrivée"
+    .Range("TableTrajetsDisponibles[Date de départ]")(ligne) = dateDepart
+    .Range("TableTrajetsDisponibles[Heure de départ]")(ligne) = heureDepart
+    .Range("F1").value = "Date darrivée"
+    .Range("TableTrajetsDisponibles[Date darrivée]")(ligne) = dateArrivee
+    .Range("F1").value = "Date d'arrivée"
+    .Range("G1").value = "Heure darrivée"
+    .Range("TableTrajetsDisponibles[Heure darrivée]")(ligne) = heureArrivee
+    .Range("G1").value = "Heure d'arrivée"
+    .Range("TableTrajetsDisponibles[Nombre de places disponibles]")(ligne) = nbPlaceDisponible
+    .Range("TableTrajetsDisponibles[Prix]")(ligne) = prix
+    End With
+    
+    ligne = ligne + 1
+    
+' Le code suivant trie les trajets par ordre croissant de l'heure de départ
+    
+    If Not IsEmpty(SheetTrajetsDisponibles.Range("TableTrajetsDisponibles")(1)) Then
+        With SheetTrajetsDisponibles.ListObjects("TableTrajetsDisponibles").Sort
+        .SortFields.Clear
+        .SortFields.Add Key:=Range("TableTrajetsDisponibles[Heure de départ]"), SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:=xlSortNormal
+        .Apply
+        End With
+    End If
+    
+End Sub
+
+'******************************************************************************
+' Cette procédure permet de rechercher, dans la TableTrajets, les trajets demandés par l'utilisateur
+' Elle prend comme paramètres la date de départ, la ville de départ et la ville d'arrivée
+' demandées par l'utilisateur
+'******************************************************************************
+
+Public Sub RechercherTrajetDisponible(ByVal dateDepart As Date, ByVal villeDepart As String, ByVal villeArrivee As String)
+
+    Dim ligne As Long, ligne2 As Long, ligne3 As Long, i As Long
+    Dim pseudo As String, idTrajet As String, nbPlaceDisponible As String, prix As String
+    Dim heureDepart As Date, heureArrivee As Date, dateArrivee As Date
+
+' On supprime tous les trajets inscrits dans le SheetTrajetsDisponibles
+
+    ligne = 1
+    
+    If Not (IsEmpty(SheetTrajetsDisponibles.Range("TableTrajetsDisponibles[idTrajet]")(1))) Then
+        Rows("2:65000").Delete
+    End If
+    
+    For i = 11 To Len(SheetPlanning.CommandButtonProfil.Caption)
+        pseudo = pseudo & Mid(SheetPlanning.CommandButtonProfil.Caption, i, 1)
+    Next i
+    
+    For ligne2 = 1 To SheetTrajet.Range("TableTrajet").Rows.Count
+        
+        If DateValue(dateDepart) = DateValue(SheetTrajet.Range("TableTrajet[dateDebut]")(ligne2)) _
+        And villeDepart = SheetTrajet.Range("TableTrajet[nomVilleDepart]")(ligne2) _
+        And villeArrivee = SheetTrajet.Range("TableTrajet[nomVilleArrivee]")(ligne2) _
+        And pseudo <> SheetTrajet.Range("TableTrajet[pseudoConducteur]")(ligne2) _
+        And SheetTrajet.Range("TableTrajet[nbPlacesDisponibles]")(ligne2) <> 0 Then
+            
+            ligne3 = 0
+            Do
+                ligne3 = ligne3 + 1
+            Loop Until (SheetParticipant.Range("TableParticipant[idTrajet]")(ligne3) = SheetTrajet.Range("TableTrajet[idTrajet]")(ligne2) _
+            And SheetParticipant.Range("TableParticipant[idUsager]")(ligne3) = pseudo) _
+            Or IsEmpty(SheetParticipant.Range("TableParticipant[idUsager]")(ligne3))
+            
+            If (ligne3 = 1 And IsEmpty(SheetParticipant.Range("TableParticipant[idUsager]")(ligne3))) _
+            Or ligne3 = SheetParticipant.Range("TableParticipant[idUsager]").Rows.Count + 1 Then
+            
+                If (DateValue(dateDepart) = Date And TimeValue(Format(SheetTrajet.Range("TableTrajet[heureDebut]")(ligne2), "hh:mm")) > TimeValue(Now)) _
+                Or Not (DateValue(dateDepart) = Date) Then
+
+                    idTrajet = SheetTrajet.Range("TableTrajet[idTrajet]")(ligne2)
+                    heureDepart = SheetTrajet.Range("TableTrajet[heureDebut]")(ligne2)
+                    dateArrivee = SheetTrajet.Range("TableTrajet[dateFin]")(ligne2)
+                    heureArrivee = SheetTrajet.Range("TableTrajet[heureFin]")(ligne2)
+                    nbPlaceDisponible = SheetTrajet.Range("TableTrajet[nbPlacesDisponibles]")(ligne2)
+                    prix = SheetTrajet.Range("TableTrajet[prix]")(ligne2)
+            
+                    AfficherTrajetsDisponibles idTrajet, villeDepart, villeArrivee, dateDepart, heureDepart, dateArrivee, heureArrivee, _
+                                               nbPlaceDisponible, prix
+                End If
+            End If
+        End If
+    Next ligne2
+End Sub
+
+'******************************************************************************
+' Cette procédure affiche le UserFormRejoindreTrajet, lorsque l'utilisateur click
+' sur le CommandButtonParticiperTrajet, si il y au moins 2 trajets.
+' Si il n'y en a qu'un, l'utilisateur rejoint automatiquement ce trajet
+'******************************************************************************
+
+Private Sub CommandButtonParticiperTrajet_Click()
+    
+    Dim pseudo As String
+    Dim idTrajet As Long, i As Long, ligne As Long
+    Dim dateDebut As Date, dateFin As Date, heureDebut As Date, heureFin As Date
+    Dim reponse As Variant
+    
+    If Not (IsEmpty(SheetTrajetsDisponibles.Range("TableTrajetsDisponibles[idTrajet]")(2))) Then
+        UserFormRejoindreTrajet.Show
+        Exit Sub
+    End If
+    
+    idTrajet = SheetTrajetsDisponibles.Range("TableTrajetsDisponibles[idTrajet]")(1)
+    
+    reponse = MsgBox("Voulez-vous rejoindre le trajet numéro " & idTrajet & " ?", (vbQuestion + vbYesNo), "Trajet numéro " & idTrajet)
+    
+    If reponse = vbNo Then
+        Exit Sub
+    End If
+    
+    For i = 11 To Len(SheetPlanning.CommandButtonProfil.Caption)
+        pseudo = pseudo & Mid(SheetPlanning.CommandButtonProfil.Caption, i, 1)
+    Next i
+    
+    Do
+        ligne = ligne + 1
+    Loop Until idTrajet = SheetTrajet.Range("TableTrajet[idTrajet]")(ligne)
+    
+    dateDebut = SheetTrajetsDisponibles.Range("TableTrajetsDisponibles[Date de départ]")(1)
+    SheetTrajetsDisponibles.Range("F1").value = "Date darrivée"
+    dateFin = SheetTrajetsDisponibles.Range("TableTrajetsDisponibles[Date darrivée]")(1)
+    SheetTrajetsDisponibles.Range("F1").value = "Date d'arrivée"
+    heureDebut = SheetTrajetsDisponibles.Range("TableTrajetsDisponibles[Heure de départ]")(1)
+    SheetTrajetsDisponibles.Range("G1").value = "Heure darrivée"
+    heureFin = SheetTrajetsDisponibles.Range("TableTrajetsDisponibles[Heure darrivée]")(1)
+    SheetTrajetsDisponibles.Range("G1").value = "Heure d'arrivée"
+    
+    If Not SheetTrajet.VerifierDisponibilite(dateDebut, dateFin, heureDebut, heureFin, pseudo) Then
+        MsgBox "Hop hop hop ! Mais vous avez déjà prévu un trajet à ce créneau !", vbCritical, "Erreur"
+        Exit Sub
+    End If
+    
+    SheetTrajet.Range("TableTrajet[nbPlacesDisponibles]")(ligne) = SheetTrajet.Range("TableTrajet[nbPlacesDisponibles]")(ligne) - 1
+    SheetParticipant.ParticiperTrajet pseudo, idTrajet
+    
+    SheetPlanning.AfficherPlanning DateValue(dateDebut)
+    SheetPlanning.CommandButtonDate.Caption = dateDebut
+    
+    MsgBox "Vous avez rejoint le trajet numéro " & idTrajet & ".", vbInformation, "Confirmation de réservation"
+    CommandButtonRetourPlanning_Click
+    
+End Sub
+
+'******************************************************************************
+' Cette procédure redirige l'utilisateur sur la SheetPlanning lorsqu'il click
+' sur le CommandButtonRetourPlanning_Click
+'******************************************************************************
+
+Private Sub CommandButtonRetourPlanning_Click()
+    
+    SheetPlanning.Visible = xlSheetVisible
+    SheetTrajetsDisponibles.Visible = xlSheetVeryHidden
+    
+End Sub

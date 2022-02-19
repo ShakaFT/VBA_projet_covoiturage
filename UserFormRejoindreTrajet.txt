@@ -1,0 +1,75 @@
+Option Explicit
+
+'******************************************************************************
+' Cette procédure permet d'affecter les valeurs dans la liste déroulante du
+' ComboBoxRejoindreTrajet lors de l'initialisation du UserFormRejoindreTrajet
+'******************************************************************************
+
+Private Sub UserForm_Initialize()
+    
+    Dim i As Long, j As Long
+    Dim tmp As Long
+    
+    If Not (IsEmpty(SheetTrajetsDisponibles.Range("TableTrajetsDisponibles[idTrajet]")(2))) Then
+        ComboBoxRejoindreTrajet.List() = SheetTrajetsDisponibles.Range("A2:A" & SheetTrajetsDisponibles.[A65000].End(xlUp).Row).value
+        
+        For i = 0 To ComboBoxRejoindreTrajet.ListCount - 1
+            For j = i To ComboBoxRejoindreTrajet.ListCount - 1
+                If CLng(ComboBoxRejoindreTrajet.List(j)) < CLng(ComboBoxRejoindreTrajet.List(i)) Then
+                    tmp = ComboBoxRejoindreTrajet.List(i)
+                    ComboBoxRejoindreTrajet.List(i) = CLng(ComboBoxRejoindreTrajet.List(j))
+                    ComboBoxRejoindreTrajet.List(j) = CLng(tmp)
+                End If
+            Next j
+        Next i
+    End If
+    
+End Sub
+
+'******************************************************************************
+' Cette procédure vérifie que l'utilsateur a bien choisi un identifiant
+' Elle redirige ensuite l'utilisateur vers la SheetPlanning
+'******************************************************************************
+
+Private Sub CommandButtonRejoindre_Click()
+    
+    Dim pseudo As String
+    Dim i As Long, ligne As Long, ligne2 As Long, ligne3 As Long
+    Dim dateDebut As Date, dateFin As Date, heureDebut As Date, heureFin As Date
+    
+    If ComboBoxRejoindreTrajet = "" Then
+        MsgBox "Veuillez sélectionner le numéro du trajet que vous souhaiter rejoindre.", vbCritical, "Erreur"
+        Exit Sub
+    End If
+    
+    For i = 11 To Len(SheetPlanning.CommandButtonProfil.Caption)
+        pseudo = pseudo & Mid(SheetPlanning.CommandButtonProfil.Caption, i, 1)
+    Next i
+    
+    Do
+        ligne = ligne + 1
+    Loop Until CLng(ComboBoxRejoindreTrajet) = SheetTrajet.Range("TableTrajet[idTrajet]")(ligne)
+    
+    dateDebut = SheetTrajet.Range("TableTrajet[DateDebut]")(ligne)
+    dateFin = SheetTrajet.Range("TableTrajet[DateFin]")(ligne)
+    heureDebut = SheetTrajet.Range("TableTrajet[HeureDebut]")(ligne)
+    heureFin = SheetTrajet.Range("TableTrajet[HeureFin]")(ligne)
+    
+    If Not SheetTrajet.VerifierDisponibilite(dateDebut, dateFin, heureDebut, heureFin, pseudo) Then
+        MsgBox "Vous avez déjà un trajet de prévu en même temps que le trajet que vous souhaitez rejoindre.", vbCritical, "Erreur"
+        Exit Sub
+    End If
+    
+    SheetTrajet.Range("TableTrajet[nbPlacesDisponibles]")(ligne) = SheetTrajet.Range("TableTrajet[nbPlacesDisponibles]")(ligne) - 1
+    SheetParticipant.ParticiperTrajet pseudo, ComboBoxRejoindreTrajet
+    
+    SheetPlanning.AfficherPlanning DateValue(dateDebut)
+    SheetPlanning.CommandButtonDate.Caption = dateDebut
+    
+    MsgBox "Vous avez rejoint le trajet numéro " & ComboBoxRejoindreTrajet & " !", vbInformation, "Confirmation"
+    Unload UserFormRejoindreTrajet
+    
+    SheetPlanning.Visible = xlSheetVisible
+    SheetTrajetsDisponibles.Visible = xlSheetVeryHidden
+    
+End Sub

@@ -1,0 +1,297 @@
+Option Explicit
+
+'******************************************************************************
+' Cette procédure s'exécute à l'initialisation du UserFormModifierProfil
+'******************************************************************************
+
+Private Sub UserForm_Initialize()
+
+    TextBoxMdp1.PasswordChar = "*"
+    TextBoxMdp2.PasswordChar = "*"
+    
+    CommandButtonSupprimerPhoto.Caption = "Supprimer la" & vbNewLine & "photo de profil"
+
+End Sub
+
+'******************************************************************************
+' Cette procédure s'exécute lorsque l'utilisateur sort de la TextBoxPseudo
+' Elle vérifie que l'utilisateur ait bien entré un pseudo qui n'existe pas
+'******************************************************************************
+
+Private Sub TextBoxPseudo_Exit(ByVal Cancel As MSForms.ReturnBoolean)
+
+    Dim ligne As Long
+    
+    Do
+        ligne = ligne + 1
+    Loop Until UCase(TextBoxPseudo) = UCase(SheetUsager.Range("TableUsager[idUsager]")(ligne)) _
+    Or SheetUsager.Range("TableUsager[idUsager]")(ligne) = ""
+    
+    If InStr(TextBoxPseudo, " ") <> 0 Then
+        MsgBox "Le pseudo ne doit pas contenir d'espace.", vbInformation, "Information"
+        TextBoxPseudo = Replace(TextBoxPseudo, " ", "")
+        Exit Sub
+    ElseIf ligne <> SheetUsager.Range("TableUsager").Rows.Count + 1 And SheetUsager.Range("TableUsager[idUsager]")(1) <> "" Then
+        MsgBox "Malheureusement ce pseudo est déjà pris par quelqu'un d'autre, choisissez en un autre.", vbCritical, "Erreur"
+        TextBoxPseudo = ""
+        Exit Sub
+    End If
+    
+End Sub
+
+'******************************************************************************
+' Cette procédure s'exécute lorsque l'utilisateur sort de la TextBoxNom
+' Elle vérifie que l'utilisateur ait bien entré un nom valide
+'******************************************************************************
+
+Private Sub TextBoxNom_Exit(ByVal Cancel As MSForms.ReturnBoolean)
+    
+    Dim nom As String
+    Dim i As Long
+    
+    nom = TextBoxNom
+
+    For i = 1 To Len(nom)
+        If IsNumeric(Mid(nom, i, 1)) Then
+            Mid(nom, i, 1) = "!"
+        End If
+    Next i
+    
+    If TextBoxNom <> nom Then
+        MsgBox "Le nom contient au moins une valeur numérique.", vbCritical, "Erreur"
+        nom = Replace(nom, "!", "")
+    End If
+    
+    TextBoxNom = UCase(nom)
+    
+End Sub
+
+'******************************************************************************
+' Cette procédure s'exécute lorsque l'utilisateur sort de la TextBoxPrenom
+' Elle vérifie que l'utilisateur ait bien entré un prénom valide
+'******************************************************************************
+
+Private Sub TextBoxPrenom_Exit(ByVal Cancel As MSForms.ReturnBoolean)
+    
+    Dim prenom As String
+    Dim i As Long
+    
+    prenom = TextBoxPrenom
+    
+    For i = 1 To Len(prenom)
+        If IsNumeric(Mid(prenom, i, 1)) Then
+            Mid(prenom, i, 1) = "!"
+        End If
+    Next i
+    
+    If TextBoxPrenom <> prenom Then
+        MsgBox "Le prénom contient au moins une valeur numérique.", vbCritical, "Erreur"
+        prenom = Replace(prenom, "!", "")
+    End If
+    
+    TextBoxPrenom = UCase(Mid(prenom, 1, 1)) & LCase(Mid(prenom, 2))
+    
+End Sub
+
+'******************************************************************************
+' Cette procédure s'exécute lorsque l'utilisateur sort de la TextBoxDateNaissance
+' Elle vérifie que l'utilisateur ait bien entré une date de naissance valide
+'******************************************************************************
+
+Private Sub TextBoxDateNaissance_Exit(ByVal Cancel As MSForms.ReturnBoolean)
+    
+    If TextBoxDateNaissance = "" Then
+        Exit Sub
+    ElseIf Not (IsDate(TextBoxDateNaissance)) Then
+        MsgBox "La date de naissance n'est pas valide, utilisez le format jj/MM/aaaa.", vbCritical, "Erreur"
+        TextBoxDateNaissance = ""
+        Exit Sub
+    ElseIf DateValue(TextBoxDateNaissance) > DateAdd("yyyy", -1, Date) Then
+        MsgBox "L'utilisateur doit avoir au moins un an.", vbCritical, "Erreur"
+        TextBoxDateNaissance = ""
+        Exit Sub
+    Else
+        TextBoxDateNaissance = Format(TextBoxDateNaissance, "dd/MM/yyyy")
+    End If
+
+End Sub
+
+'******************************************************************************
+' Cette procédure s'exécute lorsque l'utilisateur sort de la TextBoxTelephone
+' Elle vérifie que l'utilisateur ait bien entré un numéro de téléphone valide
+'******************************************************************************
+
+Private Sub TextBoxTelephone_Exit(ByVal Cancel As MSForms.ReturnBoolean)
+
+    Dim telephone As String
+
+    telephone = Replace(TextBoxTelephone, " ", "")
+    
+    If TextBoxTelephone = "" Then
+        Exit Sub
+    ElseIf Len(telephone) <> 10 Or Not (IsNumeric(telephone)) Or Mid(telephone, 1, 1) <> "0" Then
+        MsgBox "Le numéro de téléphone n'est pas valide, utilisez le format 0123456789.", vbCritical, "Erreur"
+        TextBoxTelephone = ""
+        Exit Sub
+    Else
+        TextBoxTelephone = Format(telephone, "0000000000")
+    End If
+
+End Sub
+
+'******************************************************************************
+' Cette procédure s'exécute lorsque l'utilisateur sort de la TextBoxMdp1
+' Elle vérifie que l'utilisateur ait bien entré un mot de passe valide
+'******************************************************************************
+
+Private Sub TextBoxMdp1_Exit(ByVal Cancel As MSForms.ReturnBoolean)
+
+    If TextBoxMdp1 = "" Then
+        Exit Sub
+    ElseIf Len(TextBoxMdp1) < 8 Then
+        MsgBox "Votre mot de passe doit contenir au moins 8 caractères.", vbCritical, "Erreur"
+        TextBoxMdp1 = ""
+        Exit Sub
+    ElseIf TextBoxMdp2 <> "" And TextBoxMdp1 <> TextBoxMdp2 Then
+        MsgBox "Les 2 mots de passe saisis ne sont pas identiques.", vbCritical, "Erreur"
+        TextBoxMdp1 = ""
+        TextBoxMdp2 = ""
+    End If
+
+End Sub
+
+'******************************************************************************
+' Cette procédure s'exécute lorsque l'utilisateur sort de la TextBoxMdp2
+' Elle vérifie que l'utilisateur ait bien entré un mot de passe identique au premier
+'******************************************************************************
+
+Private Sub TextBoxMdp2_Exit(ByVal Cancel As MSForms.ReturnBoolean)
+    
+    If TextBoxMdp2 = "" Then
+        Exit Sub
+    ElseIf TextBoxMdp1 <> TextBoxMdp2 And TextBoxMdp1 <> "" Then
+        MsgBox "Les 2 mots de passe saisis ne sont pas identiques.", vbCritical, "Erreur"
+        TextBoxMdp2 = ""
+        Exit Sub
+    End If
+
+End Sub
+
+'******************************************************************************
+' Cette procédure s'exécute lorsque l'utilisateur click sur le CommandButtonImage
+' Elle charge la photo choisie par l'utilisateur
+'******************************************************************************
+
+Private Sub CommandButtonImage_Click()
+    
+    Dim image As String
+    
+    image = Application.GetOpenFilename()
+    
+    If image = "Faux" Then
+        Exit Sub
+    End If
+    
+    With Image1
+    .Picture = LoadPicture(image)
+    .PictureSizeMode = fmPictureSizeModeStretch
+    End With
+    
+    LabelImage = image
+    
+End Sub
+
+'******************************************************************************
+' Cette procédure s'exécute lorsque l'utilisateur click sur le CommandButtonSupprimerPhoto
+' Elle décharge la photo que l'utilisateur avait choisi
+'******************************************************************************
+
+Private Sub CommandButtonSupprimerPhoto_Click()
+
+    With Image1
+    .Picture = LoadPicture()
+    .PictureSizeMode = fmPictureSizeModeStretch
+    End With
+    
+    LabelImage = ""
+        
+End Sub
+
+'******************************************************************************
+' Cette procédure effectue les dernières vérifications lors du click sur le
+' CommandButtonValider
+' Elle redirige ensuite l'utilisateur sur la SheetPlanning
+'******************************************************************************
+Private Sub CommandButtonValider_Click()
+    
+    Dim pseudo As String, nom As String, prenom As String, genre As String, telephone As String, mdp As String, image As String
+    Dim dateNaissance As Date
+
+    If OptionButtonHomme Then
+        genre = OptionButtonHomme.Caption
+    Else
+        genre = OptionButtonFemme.Caption
+    End If
+    
+' On vérifie que toutes les TextBox soient remplies
+
+    If TextBoxPseudo = "" Or TextBoxNom = "" Or TextBoxPrenom = "" Or TextBoxTelephone = "" Or TextBoxDateNaissance = "" _
+    Or TextBoxMdp1 = "" Or TextBoxMdp2 = "" Then
+        MsgBox "Hop hop hop ! Il faut remplir toutes les cases !", vbCritical, "Erreur"
+        Exit Sub
+    End If
+    
+    pseudo = TextBoxPseudo
+    nom = TextBoxNom
+    prenom = TextBoxPrenom
+    telephone = TextBoxTelephone
+    dateNaissance = TextBoxDateNaissance
+    mdp = TextBoxMdp1
+    image = LabelImage
+    
+    SheetUsager.Inscrire pseudo, nom, prenom, genre, telephone, dateNaissance, mdp, image
+    
+    With SheetPlanning
+    .CommandButtonProfil.Caption = "Profil de " & pseudo
+    .AfficherPlanning Date
+    .CommandButtonDate.Caption = Date
+    End With
+    
+    Unload UserFormInscrire
+    MsgBox "Bienvenue dans la communauté CarInOne !", vbInformation, "Bienvenue"
+    
+    SheetPlanning.Visible = xlSheetVisible
+    SheetAccueil.Visible = xlSheetVeryHidden
+    SheetPlanning.PageSetup.Zoom = 70
+    
+End Sub
+
+'******************************************************************************
+' Cette procédure s'exécute lors du click sur le CommandButtonPasswordChar1
+' Elle masque ou démasque les charactères de la TextBoxMdp1
+'******************************************************************************
+
+Private Sub CommandButtonPasswordChar1_Click()
+    
+    If TextBoxMdp1.PasswordChar = "" Then
+        TextBoxMdp1.PasswordChar = "*"
+    Else
+        TextBoxMdp1.PasswordChar = ""
+    End If
+    
+End Sub
+
+'******************************************************************************
+' Cette procédure s'exécute lors du click sur le CommandButtonPasswordChar1
+' Elle masque ou démasque les charactères de la TextBoxMdp1
+'******************************************************************************
+
+Private Sub CommandButtonPasswordChar2_Click()
+    
+    If TextBoxMdp2.PasswordChar = "" Then
+        TextBoxMdp2.PasswordChar = "*"
+    Else
+        TextBoxMdp2.PasswordChar = ""
+    End If
+    
+End Sub

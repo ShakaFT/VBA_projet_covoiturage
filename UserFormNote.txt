@@ -1,0 +1,66 @@
+Option Explicit
+
+'******************************************************************************
+' Cette procédure s'exécute à l'initialisation du UserFormModifierProfil
+'******************************************************************************
+
+Private Sub UserForm_Initialize()
+
+    ComboBoxNote.List() = Array("1/5", "2/5", "3/5", "4/5", "5/5")
+
+End Sub
+
+'******************************************************************************
+' Cette procédure s'exécute lors du click sur le CommandButtonValider
+' Elle valide la note choisie par l'utilisateur
+'******************************************************************************
+
+Private Sub CommandButtonValider_Click()
+    
+    Dim pseudo As String, pseudoConnecte As String
+    Dim i As Long, ligne As Long, ligne2 As Long, note As Long
+    Dim reponse As Variant
+    
+    If ComboBoxNote = "" Then
+        MsgBox "Vous n'avez saisi aucune note.", vbCritical, "Erreur"
+        Exit Sub
+    End If
+    
+    pseudo = UserFormParticipant.LabelPseudoConducteur
+    note = CLng(Mid(ComboBoxNote, 1, 1))
+    
+    reponse = MsgBox("Vous souhaitez attribuer une note de " & ComboBoxNote & " à " & pseudo & " ?", (vbQuestion + vbYesNo), "Note")
+    If reponse = vbNo Then
+        Exit Sub
+    End If
+    
+    For i = 11 To Len(SheetPlanning.CommandButtonProfil.Caption)
+        pseudoConnecte = pseudoConnecte & Mid(SheetPlanning.CommandButtonProfil.Caption, i, 1)
+    Next i
+    
+    Do
+        ligne = ligne + 1
+    Loop Until pseudo = SheetUsager.Range("TableUsager[idUsager]")(ligne)
+    
+    Do
+        ligne2 = ligne2 + 1
+    Loop Until pseudoConnecte = SheetNote.Range("TableNote[idUsager]")(ligne2) And pseudo = SheetNote.Range("TableNote[conducteur]")(ligne2) _
+            Or SheetNote.Range("TableNote[idUsager]")(ligne2) = ""
+    
+    If SheetNote.Range("TableNote[idUsager]")(ligne2) <> "" Then
+        SheetUsager.Range("TableUsager[sommeNote]")(ligne) = CLng(SheetUsager.Range("TableUsager[sommeNote]")(ligne)) _
+                                                             - CLng(Mid(SheetNote.Range("TableNote[note]")(ligne2), 1, 1))
+        SheetUsager.Range("TableUsager[nbVote]")(ligne) = SheetUsager.Range("TableUsager[nbVote]")(ligne) - 1
+    End If
+    
+    With SheetUsager
+    .Range("TableUsager[sommeNote]")(ligne) = SheetUsager.Range("TableUsager[sommeNote]")(ligne) + note
+    .Range("TableUsager[nbVote]")(ligne) = SheetUsager.Range("TableUsager[nbVote]")(ligne) + 1
+    End With
+    
+    SheetNote.Noter pseudoConnecte, pseudo, ComboBoxNote
+    
+    MsgBox "Merci pour votre contribution, la note a bien été prise en compte !", vbInformation, "Merci !"
+    Unload UserFormNote
+    
+End Sub

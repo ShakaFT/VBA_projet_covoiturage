@@ -1,0 +1,95 @@
+Option Explicit
+
+'******************************************************************************
+' Cette procédure permet d'affecter les valeurs dans les listes déroulantes des
+' ComboBox lors de l'initialisation du UserFormChercherTrajet
+'******************************************************************************
+
+Private Sub UserForm_Initialize()
+    
+    Dim i As Long, j As Long
+    Dim tmp As String
+    
+    ComboBoxDepart.List() = SheetVille.Range("A2:A" & SheetVille.[D65000].End(xlUp).Row).value
+    
+' On effectue un tri de la ComboBoxVilleDepart par ordre lexicographique
+    
+    For i = 0 To ComboBoxDepart.ListCount - 1
+        For j = i To ComboBoxDepart.ListCount - 1
+            If ComboBoxDepart.List(j) < ComboBoxDepart.List(i) Then
+                tmp = ComboBoxDepart.List(i)
+                ComboBoxDepart.List(i) = ComboBoxDepart.List(j)
+                ComboBoxDepart.List(j) = tmp
+            End If
+        Next j
+    Next i
+    
+    ComboBoxArrivee.List() = ComboBoxDepart.List()
+
+End Sub
+
+'******************************************************************************
+' Cette procédure s'exécute lorsque l'utilisateur sort de la TextBoxDateDepart
+' Elle vérifie que l'utilisateur ait bien entré une date de départ valide
+'******************************************************************************
+
+Private Sub TextBoxDateDepart_Exit(ByVal Cancel As MSForms.ReturnBoolean)
+
+    If TextBoxDateDepart = "" Then
+        Exit Sub
+    ElseIf Not (IsDate(TextBoxDateDepart)) Then
+        MsgBox "La date n'est pas valide, utilisez le format jj/MM/aaaa.", vbCritical, "Erreur"
+        TextBoxDateDepart = ""
+        Exit Sub
+    ElseIf DateValue(TextBoxDateDepart) < Date Then
+        MsgBox "Vous ne pouvez tout de même pas trouver des trajets passés !", vbCritical, "Erreur"
+        TextBoxDateDepart = ""
+        Exit Sub
+    Else
+        TextBoxDateDepart = DateValue(Format(TextBoxDateDepart, "dd/MM/yyyy"))
+    End If
+
+End Sub
+
+'******************************************************************************
+' Cette procédure s'exécute lorsque l'utilisateur click sur le CommandButtonRechercher
+' Elle vérifie que toutes les données sont cohérentes
+' Elle redirige ensuite l'utilisateur sur la SheetTrajetsDisponibles
+'******************************************************************************
+
+Private Sub CommandButtonRechercher_Click()
+
+'On vérifie que l'utilisateur ait bien entré toutes les informations
+
+    If TextBoxDateDepart = "" Or ComboBoxDepart = "" Or ComboBoxArrivee = "" Then
+        MsgBox "Hop hop hop ! Il faut remplir toutes les cases !", vbCritical, "Erreur"
+        Exit Sub
+    End If
+
+'On vérifie que l'utilisateur ait bien sélectionné 2 villes différentes
+
+    If ComboBoxDepart = ComboBoxArrivee Then
+        MsgBox "Veuillez sélectionner 2 villes différentes.", vbCritical, "Erreur"
+        Exit Sub
+    End If
+
+'On vérifie qu'il existe des trajets répondant à la demande de l'utilisateur
+
+    SheetTrajetsDisponibles.RechercherTrajetDisponible TextBoxDateDepart, ComboBoxDepart, ComboBoxArrivee
+
+    If IsEmpty(SheetTrajetsDisponibles.Range("TableTrajetsDisponibles[idTrajet]")(1)) Then
+        MsgBox "Malheureusement aucun trajet correspondant à votre demande n'est disponible pour le moment. N'hésitez pas à réitérer votre demande ultérieurement.", _
+        vbInformation, "Résultat introuvable"
+        Exit Sub
+    ElseIf IsEmpty(SheetTrajetsDisponibles.Range("TableTrajetsDisponibles[idTrajet]")(2)) Then
+        SheetTrajetsDisponibles.CommandButtonParticiperTrajet.Caption = "Rejoindre le trajet"
+    Else
+        SheetTrajetsDisponibles.CommandButtonParticiperTrajet.Caption = "Rejoindre un trajet"
+    End If
+    
+    Unload UserFormChercherTrajet
+    SheetTrajetsDisponibles.Visible = xlSheetVisible
+    SheetPlanning.Visible = xlSheetVeryHidden
+    
+End Sub
+    

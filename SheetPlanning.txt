@@ -1,0 +1,678 @@
+Option Explicit
+
+' cellule haut gauche du planning (intersection colonne heure et ligne salle)
+Const CELLULE_PLANNING As String = "F8"
+
+' variable gobale qui contient la date du planning
+Private datePlanning As Date
+
+
+'******************************************************************************
+' Cette fonction retourne la plage de cellules contenant le planning (sans entête)
+' retour : la plage contenant le planning
+'******************************************************************************
+Public Function ObtenirPlagePlanning() As Range
+
+    Set ObtenirPlagePlanning = SheetPlanning.Range(CELLULE_PLANNING).Offset(1, 1).Resize( _
+            ModuleConstante.NB_CRENEAU, ModuleConstante.NB_JOUR)
+End Function
+
+'******************************************************************************
+' Cette fonction indique si la plage est dans le planning
+' entrée refPlage : la plage de cellules
+' retour : la plage est dans le planning
+'******************************************************************************
+Public Function TesterDansPlanning(ByVal refPlage As Range) As Boolean
+                                
+    Dim refPlanning As Range, refIntersection As Range
+    
+    Set refPlanning = ObtenirPlagePlanning()
+
+    Set refIntersection = Application.Intersect(refPlage, refPlanning)
+    
+    If refIntersection Is Nothing Then
+        TesterDansPlanning = False
+    Else
+        TesterDansPlanning = refPlage.Address = refIntersection.Address
+    End If
+End Function
+
+'******************************************************************************
+' Cette fonction retourne la cellule du planning correspondant au jour et à l'heure
+' entrée heureDebut : l'heure de début
+' entrée jour : le numéro du jour (indiçage 1)
+' retour : la cellule ou Nothing si hors du planning
+'******************************************************************************
+Public Function ObtenirCelluleReservation(ByVal heureDebut As Date, jour As Long) As Range
+
+    Dim nuCreneau As Long
+    Dim refCellule As Range
+    
+    nuCreneau = Hour(heureDebut - ModuleConstante.HEURE_DEBUT)
+    
+    Set refCellule = SheetPlanning.Range(CELLULE_PLANNING).Offset(nuCreneau + 1, jour)
+    
+    If TesterDansPlanning(refCellule) Then
+        Set ObtenirCelluleReservation = refCellule
+    Else
+        Set ObtenirCelluleReservation = Nothing
+    End If
+End Function
+
+'******************************************************************************
+' Cette fontion retourne l'heure associée à une cellule.
+' entrée refCellule : la cellule
+' retour : l'heure
+'******************************************************************************
+Public Function ObtenirHeure(ByVal refCellule As Range) As Date
+    
+    Dim creneau As Long
+    
+    creneau = refCellule.Row - SheetPlanning.Range(CELLULE_PLANNING).Row - 1
+        
+    ObtenirHeure = DateAdd("h", creneau, ModuleConstante.HEURE_DEBUT)
+End Function
+
+'******************************************************************************
+' Cette fontion retourne le jour associé à une cellule.
+' entrée refCellule : la cellule
+' retour : le jour (indiçage 1)
+'******************************************************************************
+Public Function ObtenirJour(ByVal refCellule As Range) As Long
+        
+    ObtenirJour = refCellule.Column - SheetPlanning.Range(CELLULE_PLANNING).Column
+End Function
+
+'******************************************************************************
+' Cette procédure affiche la partie fixe du planning
+'******************************************************************************
+Public Sub AfficherPlanningPartieFixe()
+    
+    Dim liste(2) As String
+    Dim numJour As Long, i As Long, colonne As Long, colonne2 As Long, ligne As Long
+    Dim refPlagePlanning As Range, refCellule As Range
+    Dim heureDebut As Date, jourMois As Date
+    Dim voyelle As Boolean
+    
+    numJour = Weekday(datePlanning, 2)
+    jourMois = datePlanning
+    
+    Set refPlagePlanning = ObtenirPlagePlanning()
+    refPlagePlanning.ColumnWidth = 22
+    refPlagePlanning.RowHeight = 43
+    
+    SheetPlanning.Range(CELLULE_PLANNING).Columns(1).ColumnWidth = 10.7
+    
+    refPlagePlanning.Clear
+
+    With refPlagePlanning.Borders
+        .LineStyle = xlContinuous
+        .Weight = xlThick
+    End With
+    
+' On itère sur toutes les colonnes du planning jusqu'à tomber sur dimanche
+    
+    For colonne = 1 To ModuleConstante.NB_JOUR + 1
+        With SheetPlanning.Range(CELLULE_PLANNING).Cells(1, colonne)
+            If colonne = 1 Then
+                .value = "Heure"
+            Else
+                .value = WeekdayName(numJour, False, vbMonday) & " " & Format(jourMois, "dd/MM/yy")
+                numJour = numJour + 1
+                jourMois = jourMois + 1
+            End If
+            
+            .Font.ColorIndex = 1
+            .Font.Size = 14
+            .Font.Name = "Goudy Old Style"
+            .HorizontalAlignment = xlCenter
+            .VerticalAlignment = xlCenter
+            .Interior.Color = RGB(213, 247, 213)
+        End With
+        
+        If numJour = 8 Then
+            Exit For
+        End If
+        
+    Next colonne
+    
+    numJour = 1
+    
+' On itère sur toutes les colonnes du planning en commencant à la colonne juste après celle où on s'est arrêté
+    
+    For colonne2 = colonne + 1 To ModuleConstante.NB_JOUR + 1
+        With SheetPlanning.Range(CELLULE_PLANNING).Cells(1, colonne2)
+            .value = WeekdayName(numJour, False, vbMonday) & " " & Format(jourMois, "dd/MM/yy")
+            numJour = numJour + 1
+            jourMois = jourMois + 1
+            .Font.ColorIndex = 1
+            .Font.Size = 14
+            .Font.Name = "Goudy Old Style"
+            .HorizontalAlignment = xlCenter
+            .VerticalAlignment = xlCenter
+            .Interior.Color = RGB(213, 247, 213)
+        End With
+    Next colonne2
+
+' On itère sur toutes les lignes du planning
+    
+    For ligne = 1 To ModuleConstante.NB_CRENEAU
+    
+        Set refCellule = SheetPlanning.Range(CELLULE_PLANNING).Cells(ligne + 1, 1)
+        
+        heureDebut = ObtenirHeure(refCellule)
+        
+        With refCellule
+        .value = Replace(Format(heureDebut, "hh:mm"), ":", "h")
+        .Font.ColorIndex = 2
+        .VerticalAlignment = xlTop
+        .HorizontalAlignment = xlCenter
+        .Font.Size = 13
+        .Interior.Color = RGB(213, 247, 213)
+        .Font.Color = RGB(32, 0, 0)
+        .Font.Name = "Goudy Old Style"
+        End With
+    Next ligne
+   
+' On s'occupe de l'affichage du compteur
+   
+    For i = 0 To 2
+        liste(i) = TempsRestant(i)
+    Next i
+    
+    voyelle = IIf(Mid(liste(1), 1, 1) = "A" Or Mid(liste(1), 1, 1) = "E" Or Mid(liste(1), 1, 1) = "I" Or Mid(liste(1), 1, 1) = "O" _
+    Or Mid(liste(1), 1, 1) = "U", True, False)
+    
+    If liste(0) = "" Then
+        Cells(2, 7) = "Vous n'avez aucun trajet de prévu pour le moment."
+    ElseIf liste(0) = "0" Then
+        If voyelle Then
+            Cells(2, 7) = "Vous êtes prêt(e) pour " & liste(2) & " ?" & vbNewLine & "Vous partez d'" & liste(1) & " aujourd'hui !"
+        Else
+            Cells(2, 7) = "Vous êtes prêt(e) pour " & liste(2) & " ?" & vbNewLine & "Vous partez de " & liste(1) & " aujourd'hui !"
+        End If
+    ElseIf liste(0) = "1" Then
+        If voyelle Then
+            Cells(2, 7) = "Vous êtes prêt(e) pour " & liste(2) & " ?" & vbNewLine & "Vous partez d'" & liste(1) & " demain !"
+        Else
+            Cells(2, 7) = "Vous êtes prêt(e) pour " & liste(2) & " ?" & vbNewLine & "Vous partez de " & liste(1) & " demain !"
+        End If
+    Else
+        If voyelle Then
+            Cells(2, 7) = "Vous êtes prêt(e) pour " & liste(2) & " ?" & vbNewLine & "Vous partez d'" & liste(1) & " dans " & liste(0) & " jours !"
+        Else
+            Cells(2, 7) = "Vous êtes prêt(e) pour " & liste(2) & " ?" & vbNewLine & "Vous partez de " & liste(1) & " dans " & liste(0) & " jours !"
+        End If
+    End If
+    
+End Sub
+
+'******************************************************************************
+' Cette procédure affiche le planning complet
+' Entrée dateCalendarForm : la date choisi par l'utilisateur
+'******************************************************************************
+Public Sub AfficherPlanning(ByVal dateCalendarForm As Date)
+
+    Dim refCelluleReservationDebut As Range, refCelluleReservationFin As Range
+    Dim dateDebut As Date, dateFin As Date, heureDebut As Date, heureFin As Date
+    Dim i As Long, ligne As Long, ligne2 As Long, colonne As Long, idTrajet As Long, idTrajet2 As Long
+    Dim villeDepart As String, villeArrivee As String, pseudoConnecte As String, pseudoConducteur As String, pseudoPassager As String
+    
+    Application.ScreenUpdating = False
+    
+    datePlanning = dateCalendarForm
+    
+    For i = 11 To Len(CommandButtonProfil.Caption)
+        pseudoConnecte = pseudoConnecte & Mid(CommandButtonProfil.Caption, i, 1)
+    Next i
+    
+    AfficherPlanningPartieFixe
+    
+    If IsEmpty(SheetTrajet.Range("TableTrajet[idTrajet]")(1)) Then
+        Application.ScreenUpdating = True
+        Exit Sub
+    End If
+    
+    For colonne = 0 To 6
+        datePlanning = dateCalendarForm + colonne
+        
+        For ligne = 1 To SheetTrajet.Range("TableTrajet").Rows.Count
+    
+            dateDebut = DateValue(SheetTrajet.Range("TableTrajet[dateDebut]")(ligne))
+            dateFin = DateValue(SheetTrajet.Range("TableTrajet[dateFin]")(ligne))
+            pseudoConducteur = SheetTrajet.Range("TableTrajet[pseudoConducteur]")(ligne)
+            heureFin = SheetTrajet.Range("TableTrajet[heureFin]")(ligne)
+            
+            ligne2 = 0
+            
+            Do
+                ligne2 = ligne2 + 1
+                idTrajet2 = SheetParticipant.Range("TableParticipant[idTrajet]")(ligne2)
+                pseudoPassager = SheetParticipant.Range("TableParticipant[idUsager]")(ligne2)
+            Loop Until idTrajet2 = SheetTrajet.Range("TableTrajet[idTrajet]")(ligne) And pseudoPassager = pseudoConnecte _
+            Or IsEmpty(SheetParticipant.Range("TableParticipant[idUsager]")(ligne2))
+    
+            If datePlanning = dateDebut And datePlanning = dateFin And (pseudoConducteur = pseudoConnecte Or pseudoPassager = pseudoConnecte) _
+            And TimeValue(heureFin) <> #12:00:00 AM# Then
+                
+                heureDebut = SheetTrajet.Range("TableTrajet[heureDebut]")(ligne)
+                
+                If Mid(Format(SheetTrajet.Range("TableTrajet[heureFin]")(ligne), "hh:mm"), 4, 2) = "00" Then
+                    heureFin = SheetTrajet.Range("TableTrajet[heureFin]")(ligne) - (1 / 24)
+                Else
+                    heureFin = SheetTrajet.Range("TableTrajet[heureFin]")(ligne)
+                End If
+                
+                AfficherDansCellule heureDebut, heureFin, pseudoConducteur, pseudoConnecte, colonne, ligne
+                
+            ElseIf datePlanning = dateDebut And datePlanning <> dateFin And (pseudoConducteur = pseudoConnecte Or pseudoPassager = pseudoConnecte) Then
+            
+                heureDebut = SheetTrajet.Range("TableTrajet[heureDebut]")(ligne)
+                heureFin = #11:59:00 PM#
+        
+                AfficherDansCellule heureDebut, heureFin, pseudoConducteur, pseudoConnecte, colonne, ligne
+            
+            ElseIf datePlanning <> dateDebut And datePlanning = dateFin And (pseudoConducteur = pseudoConnecte Or pseudoPassager = pseudoConnecte) _
+            And heureFin <> #12:00:00 AM# Then
+                
+                heureDebut = #12:01:00 AM#
+                
+                If Mid(Format(SheetTrajet.Range("TableTrajet[heureFin]")(ligne), "hh:mm"), 4, 2) = "00" Then
+                    heureFin = SheetTrajet.Range("TableTrajet[heureFin]")(ligne) - (1 / 24)
+                Else
+                    heureFin = SheetTrajet.Range("TableTrajet[heureFin]")(ligne)
+                End If
+        
+                AfficherDansCellule heureDebut, heureFin, pseudoConducteur, pseudoConnecte, colonne, ligne
+            End If
+        Next ligne
+    Next colonne
+    
+    datePlanning = datePlanning - 6
+    Application.ScreenUpdating = True
+End Sub
+
+'******************************************************************************
+' Cette procédure affiche le trajet dans la cellule
+' Elle prend comme paramètres les informations du trajet à afficher
+'******************************************************************************
+
+Public Sub AfficherDansCellule(ByVal heureDebut As Date, ByVal heureFin As Date, ByVal pseudoConducteur As String, ByVal pseudoConnecte As String, _
+                               ByVal colonne As Long, ligne As Long)
+
+    Dim refCelluleReservationDebut As Range, refCelluleReservationFin As Range
+    Dim idTrajet As Long
+    Dim villeDepart As String, villeArrivee As String
+    
+    Set refCelluleReservationDebut = ObtenirCelluleReservation(heureDebut, colonne + 1)
+    Set refCelluleReservationFin = ObtenirCelluleReservation(heureFin, colonne + 1)
+            
+    idTrajet = SheetTrajet.Range("TableTrajet[idTrajet]")(ligne)
+    villeDepart = SheetTrajet.Range("TableTrajet[nomVilleDepart]")(ligne)
+    villeArrivee = SheetTrajet.Range("TableTrajet[nomVilleArrivee]")(ligne)
+                
+    SheetPlanning.Range(refCelluleReservationDebut, refCelluleReservationFin).MergeCells = True
+       
+    With refCelluleReservationDebut
+        .value = "Trajet numéro : " & idTrajet & vbNewLine & villeDepart & vbNewLine & villeArrivee
+        .Characters().Font.Bold = True
+        .HorizontalAlignment = xlCenter
+        .VerticalAlignment = xlCenter
+        .Font.ColorIndex = 1
+    End With
+    
+    If pseudoConducteur = pseudoConnecte Then
+        refCelluleReservationDebut.Interior.Color = RGB(237, 125, 49)
+    Else
+        refCelluleReservationDebut.Interior.Color = RGB(237, 206, 155)
+    End If
+
+End Sub
+
+'******************************************************************************
+' Cette procédure permet d'afficher les informations de l'utilisateur dans
+' le UserFormProfil
+' Elle prend comme paramètre les informations de l'utilisateur
+'******************************************************************************
+
+Public Sub AfficherProfil(ByVal pseudo As String, ByVal nom As String, ByVal prenom As String, ByVal genre As String, ByVal dateNaissance As Date, _
+                          ByVal telephone As String, ByVal mdp As String, note As String, image As String)
+    
+    With UserFormProfil
+    .LabelPseudo = pseudo
+    .LabelNom = nom
+    .LabelPrenom = prenom
+    .LabelGenre = genre
+    .LabelDateNaissance = dateNaissance
+    .LabelTelephone = telephone
+    .LabelMdp = mdp
+    .LabelNote = note
+    End With
+    
+    If image <> "" Then
+        UserFormProfil.PhotoDeProfil.Picture = LoadPicture(image)
+        UserFormProfil.PhotoDeProfil.PictureSizeMode = fmPictureSizeModeStretch
+    Else
+        UserFormProfil.PhotoDeProfil.Visible = False
+    End If
+    
+End Sub
+
+'******************************************************************************
+' Cette fonction retourne un tableau unidimensionnel avec 3 valeurs :
+' indice 0 : Le nombre de jours avant le prochain trajet
+' indice 1 : La ville de départ du prochain trajet
+' indice 2 : Le ville d'arrivée du prochain prochain trajet
+'******************************************************************************
+
+Public Function TempsRestant() As Variant
+    
+    Dim i As Long, j As Long
+    Dim liste(2) As String
+    
+    ListeTrajets
+    If Not IsEmpty(SheetListeTrajets.Range("TableListeTrajets[idTrajet]")(1)) Then
+        liste(0) = CStr(DateDiff("d", Date, DateValue(SheetListeTrajets.Range("TableListeTrajets[Date de départ]")(1))))
+        i = InStr(SheetListeTrajets.Range("TableListeTrajets[Ville de départ]")(1), "(") - 2
+        liste(1) = Mid(SheetListeTrajets.Range("TableListeTrajets[Ville de départ]")(1), 1, i)
+        SheetListeTrajets.Cells(1, 7) = "Ville darrivée"
+        j = InStr(SheetListeTrajets.Range("TableListeTrajets[Ville darrivée]")(1), "(") - 2
+        liste(2) = Mid(SheetListeTrajets.Range("TableListeTrajets[Ville darrivée]")(1), 1, j)
+        SheetListeTrajets.Cells(1, 7) = "Ville d'arrivée"
+    End If
+    
+    TempsRestant = liste
+    
+End Function
+
+'******************************************************************************
+' Cette procédure permet d'afficher le UserFormCreerTrajet lors du click sur le
+' CommandButtonCreerTrajet
+'******************************************************************************
+
+Private Sub CommandButtonCreerTrajet_Click()
+    
+    Dim pseudo As String
+    Dim i As Long, ligne As Long
+    
+    For i = 11 To Len(CommandButtonProfil.Caption)
+        pseudo = pseudo & Mid(CommandButtonProfil.Caption, i, 1)
+    Next i
+    
+    Do
+        ligne = ligne + 1
+    Loop Until SheetUsager.Range("TableUsager[idUsager]")(ligne) = pseudo
+    
+    If DateValue(SheetUsager.Range("TableUsager[dateNaissance]")(ligne)) <= DateAdd("yyyy", -18, Date) Then
+        UserFormCreerTrajet.Show
+    Else
+        MsgBox "Vous allez devoir soufflez encore quelques bougies avant d'être majeur et de pouvoir enfin conduire !", vbCritical, "Erreur"
+        Exit Sub
+    End If
+        
+End Sub
+
+'******************************************************************************
+' Cette procédure permet d'afficher le UserFormChercherTrajet lors du click sur
+' le CommandButtonChercherTrajet
+'******************************************************************************
+
+Private Sub CommandButtonChercherTrajet_Click()
+
+    UserFormChercherTrajet.Show
+
+End Sub
+
+'******************************************************************************
+' Cette procédure permet d'afficher le CalendarForm permettant de sélectionner
+' la date lors du click sur le CommandButtonDate
+'******************************************************************************
+
+Private Sub CommandButtonDate_Click()
+    
+    datePlanning = CalendarForm.GetDate( _
+                    SelectedDate:=Date, _
+                    FirstDayOfWeek:=Monday, _
+                    DateFontSize:=12, _
+                    TodayButton:=True, _
+                    OkayButton:=True, _
+                    ShowWeekNumbers:=True, _
+                    BackgroundColor:=RGB(213, 247, 213), _
+                    HeaderColor:=RGB(213, 247, 213), _
+                    HeaderFontColor:=RGB(32, 0, 0), _
+                    SubHeaderColor:=RGB(213, 247, 213), _
+                    SubHeaderFontColor:=RGB(32, 0, 0), _
+                    DateColor:=RGB(243, 249, 251), _
+                    DateFontColor:=RGB(89, 191, 104), _
+                    TrailingMonthFontColor:=RGB(133, 231, 149), _
+                    DateHoverColor:=RGB(223, 240, 245), _
+                    DateSelectedColor:=RGB(202, 223, 242), _
+                    SaturdayFontColor:=RGB(32, 130, 65), _
+                    SundayFontColor:=RGB(32, 130, 65), _
+                    TodayFontColor:=RGB(0, 176, 80))
+    
+    If datePlanning <> 0 Then
+        AfficherPlanning datePlanning
+        CommandButtonDate.Caption = Format(datePlanning, "dd/mm/yyyy")
+    End If
+
+End Sub
+
+'******************************************************************************
+' Cette procédure redirige l'utilisateur sur la SheetAccueil
+'******************************************************************************
+
+Private Sub CommandButtonRetourAccueil_Click()
+    
+    SheetAccueil.Visible = xlSheetVisible
+    SheetPlanning.Visible = xlSheetVeryHidden
+    
+End Sub
+
+'******************************************************************************
+' Cette procédure permet d'afficher le UserFormProfil lors du click sur
+' le CommandButtonProfil
+'******************************************************************************
+
+Private Sub CommandButtonProfil_Click()
+    
+    Dim pseudo As String, nom As String, prenom As String, genre As String, telephone As String, mdp As String, note As String, image As String
+    Dim dateNaissance As Date
+    Dim i As Long, ligne As Long, sommeNote As Long, nbVote As Long
+    
+    For i = 11 To Len(CommandButtonProfil.Caption)
+        pseudo = pseudo & Mid(CommandButtonProfil.Caption, i, 1)
+    Next i
+    
+    Do
+        ligne = ligne + 1
+    Loop Until pseudo = SheetUsager.Range("TableUsager[idUsager]")(ligne)
+    
+    nom = SheetUsager.Range("TableUsager[nom]")(ligne)
+    prenom = SheetUsager.Range("TableUsager[prenom]")(ligne)
+    genre = SheetUsager.Range("TableUsager[genre]")(ligne)
+    dateNaissance = SheetUsager.Range("TableUsager[dateNaissance]")(ligne)
+    telephone = Format(SheetUsager.Range("TableUsager[telephone]")(ligne), "00 00 00 00 00")
+    mdp = SheetUsager.Range("TableUsager[MotDePasse]")(ligne)
+    image = SheetUsager.Range("TableUsager[photo]")(ligne)
+    
+    sommeNote = CLng(SheetUsager.Range("TableUsager[sommeNote]")(ligne))
+    nbVote = CLng(SheetUsager.Range("TableUsager[nbVote]")(ligne))
+    
+    If sommeNote <> 0 Then
+        note = IIf(nbVote = 1, sommeNote & "/5 - 1 vote", Round(sommeNote / nbVote, 1) & "/5 - " & nbVote & " votes")
+    Else
+        note = "Aucun vote"
+    End If
+    
+    AfficherProfil pseudo, nom, prenom, genre, dateNaissance, telephone, mdp, note, image
+    
+    UserFormProfil.Show
+
+End Sub
+
+'******************************************************************************
+' Cette procédure affiche le UserFormInfoTrajet lorsque l'utilisateur double click
+' sur une cellule du planning qui n'est pas vide
+'******************************************************************************
+
+Private Sub Worksheet_BeforeDoubleClick(ByVal Target As Range, Cancel As Boolean)
+    
+    Dim dateTrajet As Date, heureTrajet As Date
+    Dim idTrajet As String, pseudoConnecte As String
+    Dim i As Long, j As Long
+    Dim liste(1) As Date
+    
+    If TesterDansPlanning(Target) And Not IsEmpty(Target) Then
+            
+' On récupère l'idTrajet
+        j = 17
+        Do
+            idTrajet = idTrajet & Mid(ActiveCell, j, 1)
+            j = j + 1
+        Loop Until Not (IsNumeric(Mid(ActiveCell, j, 1)))
+        
+' On récupère le pseudoConducteur
+        For i = 11 To Len(CommandButtonProfil.Caption)
+            pseudoConnecte = pseudoConnecte & Mid(CommandButtonProfil.Caption, i, 1)
+        Next i
+        
+        UserFormInfoTrajet.Caption = "Informations du trajet numéro " & idTrajet
+        
+        dateTrajet = AfficherContenuUserFormInfoTrajet(CLng(idTrajet), pseudoConnecte)(0)
+        heureTrajet = AfficherContenuUserFormInfoTrajet(CLng(idTrajet), pseudoConnecte)(1)
+
+        If dateTrajet < Date Or (dateTrajet = Date And heureTrajet < TimeValue(Format(Now, "hh:mm"))) Then
+            With UserFormInfoTrajet
+                .CommandButtonSupprimerTrajet.Visible = False
+                .CommandButtonParticipant.Left = 83
+            End With
+        End If
+        UserFormInfoTrajet.Show
+    End If
+    Range(CELLULE_PLANNING).Offset(ActiveCell.Row - CLng(Mid(CELLULE_PLANNING, 2)), 0).Select
+End Sub
+
+'******************************************************************************
+' Cette procédure affiche les informations du trajet sélectionné par l'utilisateur
+' dans le UserFormInfoTrajet
+'******************************************************************************
+
+Public Function AfficherContenuUserFormInfoTrajet(ByVal idTrajet As Long, ByVal pseudoConnecte As String) As Variant
+    
+    Dim pseudoConducteur As String, dateDepart As String, dateArrivee As String, villeDepart As String, villeArrivee As String
+    Dim ligne As Long, nbPlaceDispo As Long, prix As Long
+    Dim liste(1) As Date
+    
+    Do
+        ligne = ligne + 1
+    Loop Until idTrajet = SheetTrajet.Range("TableTrajet[idTrajet]")(ligne)
+    
+    pseudoConducteur = SheetTrajet.Range("TableTrajet[pseudoConducteur]")(ligne)
+    dateDepart = SheetTrajet.Range("TableTrajet[dateDebut]")(ligne) & " " & Format(SheetTrajet.Range("TableTrajet[heureDebut]")(ligne), "hh:mm")
+    dateArrivee = SheetTrajet.Range("TableTrajet[dateFin]")(ligne) & " " & Format(SheetTrajet.Range("TableTrajet[heureFin]")(ligne), "hh:mm")
+    villeDepart = SheetTrajet.Range("TableTrajet[nomVilleDepart]")(ligne)
+    villeArrivee = SheetTrajet.Range("TableTrajet[nomVilleArrivee]")(ligne)
+    nbPlaceDispo = SheetTrajet.Range("TableTrajet[nbPlacesDisponibles]")(ligne)
+    prix = SheetTrajet.Range("TableTrajet[prix]")(ligne)
+    
+    If pseudoConducteur = pseudoConnecte Then
+        UserFormInfoTrajet.LabelParticipant = "Vous êtes conducteur"
+        UserFormInfoTrajet.CommandButtonSupprimerTrajet.Caption = "Supprimer le trajet"
+    Else
+        UserFormInfoTrajet.LabelParticipant = "Vous êtes passager"
+        UserFormInfoTrajet.CommandButtonSupprimerTrajet.Caption = "Quitter le trajet"
+    End If
+    
+    dateDepart = Replace(dateDepart, ":", "h")
+    dateArrivee = Replace(dateArrivee, ":", "h")
+    
+    With UserFormInfoTrajet
+    .LabelIdTrajet = idTrajet
+    .LabelDepart = dateDepart
+    .LabelArrivee = dateArrivee
+    .LabelVilleDepart = villeDepart
+    .LabelVilleArrivee = villeArrivee
+    .LabelNbPlaceDispo = nbPlaceDispo
+    .LabelPrix = prix & Application.International(xlCurrencyCode)
+    End With
+    
+    liste(0) = DateValue(SheetTrajet.Range("TableTrajet[dateDebut]")(ligne))
+    liste(1) = TimeValue(Format(SheetTrajet.Range("TableTrajet[heureDebut]")(ligne), "hh:mm"))
+    AfficherContenuUserFormInfoTrajet = liste
+    
+End Function
+
+'******************************************************************************
+' Cette procédure recherche les futurs trajets de l'utilisateur
+'******************************************************************************
+
+Public Sub ListeTrajets()
+
+    Dim pseudoConnecte As String, pseudoConducteur As String, pseudoPassager As String
+    Dim i As Long, idTrajet As Long, ligne As Long, ligne2 As Long, ligne3 As Long
+    Dim dateTrajet As Date
+    
+    For i = 11 To Len(CommandButtonProfil.Caption)
+        pseudoConnecte = pseudoConnecte & Mid(CommandButtonProfil.Caption, i, 1)
+    Next i
+    
+' On supprime tous les trajets
+    
+    If IsEmpty(SheetTrajet.Range("TableTrajet[idTrajet]")(1)) Then
+        Exit Sub
+    ElseIf Not IsEmpty(SheetListeTrajets.Range("TableListeTrajets[idTrajet]")(1)) Then
+        SheetListeTrajets.Rows("2:65000").Delete
+    End If
+    
+' On cherche les trajets dont l'utilisateur est conducteur
+    
+    For ligne = 1 To SheetTrajet.Range("TableTrajet[idTrajet]").Rows.Count
+        pseudoConducteur = SheetTrajet.Range("TableTrajet[pseudoConducteur]")(ligne)
+        dateTrajet = DateValue(SheetTrajet.Range("TableTrajet[dateDebut]")(ligne))
+        If pseudoConnecte = pseudoConducteur And dateTrajet >= Date Then
+            SheetListeTrajets.AfficherListeTrajets ligne, "Conducteur"
+        End If
+    Next ligne
+    
+' On cherche les trajets dont l'utilisateur est passager
+    
+    For ligne2 = 1 To SheetParticipant.Range("TableParticipant[idTrajet]").Rows.Count
+        pseudoPassager = SheetParticipant.Range("TableParticipant[idUsager]")(ligne2)
+        If pseudoConnecte = pseudoPassager Then
+            idTrajet = SheetParticipant.Range("TableParticipant[idTrajet]")(ligne2)
+            
+            ligne3 = 0
+            Do
+                ligne3 = ligne3 + 1
+            Loop Until idTrajet = SheetTrajet.Range("TableTrajet[idTrajet]")(ligne3)
+            
+            dateTrajet = DateValue(SheetTrajet.Range("TableTrajet[dateDebut]")(ligne3))
+            
+            If dateTrajet >= Date Then
+                SheetListeTrajets.AfficherListeTrajets ligne3, "Passager"
+            End If
+        End If
+    Next ligne2
+    
+    SheetListeTrajets.TrierTrajets
+
+End Sub
+
+'******************************************************************************
+' Cette procédure redirige l'utilisateur vers la SheetListeTrajets
+'******************************************************************************
+
+Private Sub CommandButtonListeTrajets_Click()
+    
+    ListeTrajets
+    
+    If IsEmpty(SheetListeTrajets.Range("TableListeTrajets[idTrajet]")(1)) Then
+        MsgBox "Vous n'avez aucun trajet de prévu pour le moment.", vbInformation, "Information"
+        Exit Sub
+    End If
+    
+    SheetListeTrajets.Visible = xlSheetVisible
+    SheetPlanning.Visible = xlSheetVeryHidden
+    
+End Sub

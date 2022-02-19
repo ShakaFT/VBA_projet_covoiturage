@@ -1,0 +1,25 @@
+Option Explicit
+
+'******************************************************************************
+' Cette procédure permet d'affecter dans la TableNote le pseudo de l'utilisateur
+' qui a attribuée une note, celui qui a été noté, et la note attribuée au format "n/5"
+'******************************************************************************
+
+Public Sub Noter(ByVal idUsager As String, ByVal conducteur As String, ByVal note As String)
+    
+    Dim ligne As Long
+    
+' On cherche si l'utilisateur avait déjà affecté une note à ce conducteur, sinon on affecte les valeurs dans un nouvelle ligne du tableau
+    
+    Do
+        ligne = ligne + 1
+    Loop Until idUsager = SheetNote.Range("TableNote[idUsager]")(ligne) And conducteur = SheetNote.Range("TableNote[conducteur]")(ligne) _
+            Or SheetNote.Range("TableNote[idUsager]")(ligne) = ""
+    
+    With SheetNote
+    .Range("TableNote[idUsager]")(ligne) = idUsager
+    .Range("TableNote[conducteur]")(ligne) = conducteur
+    .Range("TableNote[note]")(ligne) = note
+    End With
+
+End Sub

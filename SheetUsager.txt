@@ -1,0 +1,40 @@
+Option Explicit
+'******************************************************************************
+' Cette fonction affiche dans la TableUsager les informations de l'utilisateur
+' Elle prend comme paramètre toutes ses informations
+'******************************************************************************
+
+Public Function Inscrire(ByVal pseudo As String, ByVal nom As String, ByVal prenom As String, ByVal genre As String, _
+    ByVal telephone As String, ByVal dateNaissance As Date, mdp As String, ByVal image As String) As Boolean
+
+    Dim ligne As Long, ligneUsager As Long
+    
+    Do
+        ligneUsager = ligneUsager + 1
+    Loop Until pseudo = SheetUsager.Range("TableUsager[idUsager]")(ligneUsager) Or ligneUsager = SheetUsager.Range("TableUsager").Rows.Count + 1
+    
+    If IsEmpty(SheetUsager.Range("TableUsager[idUsager]")(1)) Then
+        ligne = 1
+    ElseIf ligneUsager <> SheetUsager.Range("TableUsager").Rows.Count + 1 Then 'On distingue ici si l'utilisateur s'inscrit ou modifie son profil
+        ligne = ligneUsager
+    Else
+        ligne = SheetUsager.Range("TableUsager").Rows.Count + 1
+    End If
+    
+    With SheetUsager
+    .Range("TableUsager[idUsager]")(ligne) = pseudo
+    .Range("TableUsager[nom]")(ligne) = nom
+    .Range("TableUsager[prenom]")(ligne) = prenom
+    .Range("TableUsager[genre]")(ligne) = genre
+    .Range("TableUsager[telephone]")(ligne) = telephone
+    .Range("TableUsager[dateNaissance]")(ligne) = dateNaissance
+    .Range("TableUsager[MotDePasse]")(ligne) = mdp
+    .Range("TableUsager[photo]")(ligne) = image
+    End With
+    
+    If SheetUsager.Range("TableUsager[sommeNote]")(ligne) = "" Then
+        SheetUsager.Range("TableUsager[sommeNote]")(ligne) = 0
+        SheetUsager.Range("TableUsager[nbVote]")(ligne) = 0
+    End If
+    
+End Function

@@ -1,0 +1,229 @@
+Option Explicit
+
+'******************************************************************************
+'Cette procédure permet d'affecter les valeurs dans les listes déroulantes des
+'ComboBox lors de l'initialisation du UserFormCreerTrajet
+'******************************************************************************
+
+Private Sub UserForm_Initialize()
+    
+    Dim i As Long, j As Long
+    Dim tmp As String
+    
+    ComboBoxNbPlace.List() = Array(1, 2, 3, 4, 5, 6, 7, 8)
+    
+    ComboBoxVilleDepart.List() = SheetVille.Range("A2:A" & SheetVille.[D65000].End(xlUp).Row).value
+    
+'On effectue un tri de la ComboBoxVilleDepart par ordre lexicographique
+    
+    For i = 0 To ComboBoxVilleDepart.ListCount - 1
+        For j = i To ComboBoxVilleDepart.ListCount - 1
+            If ComboBoxVilleDepart.List(j) < ComboBoxVilleDepart.List(i) Then
+                tmp = ComboBoxVilleDepart.List(i)
+                ComboBoxVilleDepart.List(i) = ComboBoxVilleDepart.List(j)
+                ComboBoxVilleDepart.List(j) = tmp
+            End If
+        Next j
+    Next i
+    
+    ComboBoxVilleArrivee.List() = ComboBoxVilleDepart.List()
+
+    
+End Sub
+
+'******************************************************************************
+' Cette procédure s'exécute lorsque l'utilisateur sort de la TextBoxDateDebut
+' Elle vérifie que l'utilisateur ait bien entré une date de départ valide
+'******************************************************************************
+
+Private Sub TextBoxDateDebut_Exit(ByVal Cancel As MSForms.ReturnBoolean)
+    
+    If TextBoxDateDebut = "" Then
+        Exit Sub
+    ElseIf Not (IsDate(TextBoxDateDebut)) Then
+        MsgBox "La date de départ n'est pas valide, utilisez le format jj/MM/aaaa.", vbCritical, "Erreur"
+        TextBoxDateDebut = ""
+        Exit Sub
+    ElseIf DateValue(TextBoxDateDebut) < Date Then
+        MsgBox "Vous ne pouvez pas créer un trajet à une date passée.", vbCritical, "Erreur"
+        TextBoxDateDebut = ""
+        Exit Sub
+    Else
+        TextBoxDateDebut = DateValue(Format(TextBoxDateDebut, "dd/MM/yyyy"))
+    End If
+    
+End Sub
+
+'******************************************************************************
+' Cette procédure s'exécute lorsque l'utilisateur sort de la TextBoxHeureDebut
+' Elle vérifie que l'utilisateur ait bien entré une heure de départ valide
+'******************************************************************************
+
+Private Sub TextBoxHeureDebut_Exit(ByVal Cancel As MSForms.ReturnBoolean)
+
+    Dim heureDepart As String
+    
+    heureDepart = Replace(TextBoxHeureDebut, "h", ":")
+    
+    If TextBoxHeureDebut = "" Then
+        Exit Sub
+    ElseIf Not (IsDate(heureDepart)) Then
+        MsgBox "L'heure de départ n'est pas valide, utilisez le format 00h00", vbCritical, "Erreur"
+        TextBoxHeureDebut = ""
+        Exit Sub
+    Else
+        heureDepart = Format(heureDepart, "hh:mm")
+    End If
+    
+    TextBoxHeureDebut = Replace(heureDepart, ":", "h")
+    
+End Sub
+
+'******************************************************************************
+' Cette procédure s'exécute lorsque l'utilisateur sort de la TextBoxDateFin
+' Elle vérifie que l'utilisateur ait bien entré une date d'arrivée valide
+'******************************************************************************
+
+Private Sub TextBoxDateFin_Exit(ByVal Cancel As MSForms.ReturnBoolean)
+
+    If TextBoxDateFin = "" Then
+        Exit Sub
+    ElseIf Not (IsDate(TextBoxDateFin)) Then
+        MsgBox "La date d'arrivée n'est pas valide, utilisez le format jj/MM/aaaa.", vbCritical, "Erreur"
+        TextBoxDateFin = ""
+        Exit Sub
+    Else
+        TextBoxDateFin = DateValue(Format(TextBoxDateFin, "dd/MM/yyyy"))
+    End If
+    
+End Sub
+
+'******************************************************************************
+' Cette procédure s'exécute lorsque l'utilisateur sort de la TextBoxHeureFin
+' Elle vérifie que l'utilisateur ait bien entré une heure d'arrivée valide
+'******************************************************************************
+
+Private Sub TextBoxHeureFin_Exit(ByVal Cancel As MSForms.ReturnBoolean)
+
+    Dim heureArrivee As String
+    
+    heureArrivee = Replace(TextBoxHeureFin, "h", ":")
+    
+    If TextBoxHeureFin = "" Then
+        Exit Sub
+    ElseIf Not (IsDate(heureArrivee)) Then
+        MsgBox "L'heure n'est pas valide, utilisez le format 00h00", vbCritical, "Erreur"
+        TextBoxHeureFin = ""
+        Exit Sub
+    Else
+        heureArrivee = Format(heureArrivee, "hh:mm")
+    End If
+    
+    TextBoxHeureFin = Replace(heureArrivee, ":", "h")
+    
+End Sub
+
+'******************************************************************************
+' Cette procédure s'exécute lorsque l'utilisateur sort de la TextBoxPrix
+' Elle vérifie que l'utilisateur ait bien entré unprix valide
+'******************************************************************************
+
+Private Sub TextBoxPrix_Exit(ByVal Cancel As MSForms.ReturnBoolean)
+
+    Dim prix As String
+    
+    prix = Replace(TextBoxPrix, "€", "")
+    
+    If TextBoxPrix = "" Then
+        Exit Sub
+    ElseIf Not (IsNumeric(prix)) Then
+        MsgBox "Le prix n'est pas valide, veuillez entrer une valeur numérique.", vbCritical, "Erreur"
+        TextBoxPrix = ""
+        Exit Sub
+    ElseIf InStr(prix, ",") <> 0 Then
+        MsgBox "Veuiller arrondir votre prix à l'euros près.", vbCritical, "Erreur"
+        TextBoxPrix = ""
+        Exit Sub
+    ElseIf CLng(prix) < 0 Then
+        MsgBox "Le prix ne peut pas être inférieur à 0€.", vbCritical, "Erreur"
+        TextBoxPrix = ""
+        Exit Sub
+    Else
+        TextBoxPrix = Round(prix, 0) & Application.International(xlCurrencyCode)
+    End If
+
+End Sub
+
+'******************************************************************************
+' Cette procédure s'exécute lorsque l'utilisateur click sur le CommandButtonValider
+' Elle vérifie que toutes les données sont cohérentes
+'******************************************************************************
+
+Private Sub CommandButtonValider_Click()
+    
+    Dim dateDebut As String, dateFin As String, heureDepart As String, heureArrivee As String, prix As String, nbPlaces As String
+    Dim villeDepart As String, villeArrivee As String, pseudoConnecte As String
+    Dim i As Long
+    
+' On vérifie que l'utilisateur n'ait pas laissé de champ vide
+    
+    If TextBoxDateDebut = "" Or TextBoxHeureDebut = "" Or TextBoxDateFin = "" Or TextBoxHeureFin = "" Or ComboBoxNbPlace = "" _
+       Or TextBoxPrix = "" Or ComboBoxVilleDepart = "" Or ComboBoxVilleArrivee = "" Then
+        MsgBox "Hop hop hop ! Il faut remplir toutes les cases !", vbCritical, "Erreur"
+        Exit Sub
+    End If
+
+' On vérifie que l'utilisateur ait bien entré des dates de départ et d'arrivée ainsi que des heures de départ et d'arrivée cohérentes
+    
+    dateDebut = TextBoxDateDebut
+    dateFin = TextBoxDateFin
+    heureDepart = Replace(TextBoxHeureDebut, "h", ":")
+    heureArrivee = Replace(TextBoxHeureFin, "h", ":")
+    
+    If DateValue(dateDebut) = DateValue(dateFin) Then
+        If TimeValue(heureArrivee) <= TimeValue(heureDepart) Then
+            MsgBox "Choisissez une autre heure d'arrivée, vous ne pouvez pas arriver avant de partir.", vbCritical, "Erreur"
+            TextBoxHeureFin = ""
+            Exit Sub
+        End If
+    ElseIf DateValue(dateDebut) > DateValue(dateFin) Then
+        MsgBox "Choisissez une autre date d'arrivée, vous ne pouvez pas arriver avant de partir.", vbCritical, "Erreur"
+        TextBoxDateFin = ""
+        Exit Sub
+    ElseIf DateValue(dateFin) >= DateAdd("d", 2, dateDebut) Then
+        MsgBox "Notre politique ne vous autorise pas à créer des trajets s'étalant sur plus de 2 jours.", vbCritical, "Erreur"
+        TextBoxDateFin = ""
+        Exit Sub
+    End If
+
+' On vérifie que l'utilisateur n'ait pas sélectionné la même villeDepart et villeArrivee
+
+    If ComboBoxVilleDepart = ComboBoxVilleArrivee Then
+        MsgBox "Veuillez sélectionner 2 villes différentes.", vbCritical, "Erreur"
+        Exit Sub
+    End If
+    
+    nbPlaces = ComboBoxNbPlace
+    prix = Replace(TextBoxPrix, "€", "")
+    villeDepart = ComboBoxVilleDepart
+    villeArrivee = ComboBoxVilleArrivee
+    
+    For i = 11 To Len(SheetPlanning.CommandButtonProfil.Caption)
+        pseudoConnecte = pseudoConnecte & Mid(SheetPlanning.CommandButtonProfil.Caption, i, 1)
+    Next i
+    
+    If Not SheetTrajet.VerifierDisponibilite(DateValue(dateDebut), DateValue(dateFin), _
+           TimeValue(Format(heureDepart, "hh:mm")), TimeValue(Format(heureArrivee, "hh:mm")), pseudoConnecte) Then
+        MsgBox "Vous avez déjà un trajet de prévu en même temps que le trajet que vous souhaitez créer.", vbCritical, "Erreur"
+        Exit Sub
+    End If
+    
+    SheetTrajet.CreerTrajet dateDebut, heureDepart, dateFin, heureArrivee, nbPlaces, prix, villeDepart, villeArrivee, pseudoConnecte
+    
+    SheetPlanning.AfficherPlanning DateValue(dateDebut)
+    SheetPlanning.CommandButtonDate.Caption = dateDebut
+    
+    Unload UserFormCreerTrajet
+    MsgBox "Vous avez réussi à créer un trajet !", vbInformation, "Félicitations !"
+    
+End Sub

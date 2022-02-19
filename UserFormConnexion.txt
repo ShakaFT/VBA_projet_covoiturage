@@ -1,0 +1,106 @@
+Option Explicit
+
+'******************************************************************************
+' Cette procédure permet d'affecter les valeurs dans les listes déroulantes des
+' ComboBox lors de l'initialisation du UserFormConnexion
+'******************************************************************************
+
+Private Sub UserForm_Initialize()
+    
+    Dim i As Long, j As Long
+    Dim tmp As String
+    
+    If Not IsEmpty(SheetUsager.Range("TableUsager[idUsager]")(1)) Then
+        ComboBoxPseudo.List() = SheetUsager.Range("A2:A" & SheetUsager.[A65000].End(xlUp).Row).value
+    End If
+    
+' On trie le contenu de la ComboBoxPseudo par ordre lexicographique
+
+    For i = 0 To ComboBoxPseudo.ListCount - 1
+        For j = i To ComboBoxPseudo.ListCount - 1
+            If UCase(ComboBoxPseudo.List(j)) < UCase(ComboBoxPseudo.List(i)) Then
+                tmp = ComboBoxPseudo.List(i)
+                ComboBoxPseudo.List(i) = ComboBoxPseudo.List(j)
+                ComboBoxPseudo.List(j) = tmp
+            End If
+        Next j
+    Next i
+
+    TextBoxMdp3.PasswordChar = "*"
+
+End Sub
+
+'******************************************************************************
+' Cette procédure vérifie si toutes les données sont cohérentes
+' Elle redirige ensuite l'utilisateur sur la SheetPlanning
+'******************************************************************************
+
+Private Sub CommandButtonValider3_Click()
+
+    Dim pseudo As String, nom As String, prenom As String, genre As String, telephone As String, mdp As String
+    Dim idTrajet As String, dateDepart As String, heureDepart As String, villeDepart As String, villeArrivee As String
+    Dim ligne As Long, ligneNotif As Long
+    Dim dateNaissance As Date
+
+'On vérifie que l'utilisateur ait bien choisi un pseudo pour se connecter
+
+    If ComboBoxPseudo = "" Then
+        MsgBox "Veuillez choisir votre pseudo.", vbCritical, "Erreur"
+        Exit Sub
+    End If
+    
+'On vérifie que le mot de passe est correct
+    
+    Do
+        ligne = ligne + 1
+    Loop Until ComboBoxPseudo = SheetUsager.Range("TableUsager[idUsager]")(ligne)
+    
+    If TextBoxMdp3 <> SheetUsager.Range("TableUsager[MotDePasse]")(ligne) Then
+        MsgBox "Le mot de passe est incorrect.", vbCritical, "Erreur"
+        Exit Sub
+    End If
+    
+    SheetPlanning.CommandButtonProfil.Caption = "Profil de " & ComboBoxPseudo
+    
+    Unload UserFormConnexion
+    MsgBox "Bonjour " & ComboBoxPseudo & " !", vbInformation, "Bonjour !"
+    
+    SheetPlanning.AfficherPlanning Date
+    SheetPlanning.CommandButtonDate.Caption = Date
+    
+    SheetPlanning.Visible = xlSheetVisible
+    SheetAccueil.Visible = xlSheetVeryHidden
+    SheetPlanning.PageSetup.Zoom = 70
+    
+    ligneNotif = SheetNotif.VerifierNotif
+    Do While ligneNotif <> 0
+        idTrajet = SheetNotif.Range("TableNotif[idTrajet]")(ligneNotif)
+        dateDepart = SheetNotif.Range("TableNotif[dateDepart]")(ligneNotif)
+        heureDepart = Replace(Format(SheetNotif.Range("TableNotif[heureDepart]")(ligneNotif), "hh:mm"), ":", "h")
+        villeDepart = SheetNotif.Range("TableNotif[villeDepart]")(ligneNotif)
+        villeArrivee = SheetNotif.Range("TableNotif[villeArrivee]")(ligneNotif)
+        
+        MsgBox "Attention, le trajet numéro " & idTrajet & " prévu le " & dateDepart & " à " & heureDepart & " allant de " & villeDepart & _
+        " à " & villeArrivee & " a été supprimé.", vbExclamation, "Suppression"
+        
+        SheetNotif.Range("TableNotif").Rows(ligneNotif).EntireRow.Delete
+        
+        ligneNotif = SheetNotif.VerifierNotif
+    Loop
+    
+End Sub
+
+'******************************************************************************
+' Cett procédure masque ou démasque les caractères de la TextBoxMdp3 lors du click
+' sur le CommandButtonPasswordChar
+'******************************************************************************
+
+Private Sub CommandButtonPasswordChar_Click()
+    
+    If TextBoxMdp3.PasswordChar = "" Then
+        TextBoxMdp3.PasswordChar = "*"
+    Else
+        TextBoxMdp3.PasswordChar = ""
+    End If
+    
+End Sub

@@ -1,0 +1,172 @@
+Option Explicit
+
+'******************************************************************************
+' Cette procédure s'exécute lors du click sur le CommandButtonNote
+' Elle affiche le UserFormParticipant
+'******************************************************************************
+
+Private Sub CommandButtonNote_Click()
+    
+    Dim i As Long, ligne As Long
+    Dim pseudoConnecte As String, pseudoConducteur As String, note As String
+    Dim reponse As Variant
+    
+    For i = 11 To Len(SheetPlanning.CommandButtonProfil.Caption)
+        pseudoConnecte = pseudoConnecte & Mid(SheetPlanning.CommandButtonProfil.Caption, i, 1)
+    Next i
+    
+    pseudoConducteur = LabelPseudoConducteur
+    
+    Do
+        ligne = ligne + 1
+    Loop Until pseudoConnecte = SheetNote.Range("TableNote[idUsager]")(ligne) And pseudoConducteur = SheetNote.Range("TableNote[conducteur]")(ligne) _
+            Or SheetNote.Range("TableNote[idUsager]")(ligne) = ""
+    
+    note = SheetNote.Range("TableNote[note]")(ligne)
+    
+    If SheetNote.Range("TableNote[idUsager]")(ligne) <> "" Then
+        
+        reponse = MsgBox("Vous avez déjà attribué une note de " & note & " à " & pseudoConducteur & ". Souhaitez vous la modifier ?", (vbQuestion + vbYesNo), _
+                         "Changer la note ?")
+        If reponse = vbNo Then
+            Exit Sub
+        End If
+    End If
+    
+    With UserFormNote
+    .Caption = "Attribuez une note à " & pseudoConducteur
+    .Label1.Caption = "Quelle note souhaitez vous attribuer à " & pseudoConducteur & " ?"
+    End With
+    
+    UserFormParticipant.Hide
+    UserFormNote.Show
+    UserFormParticipant.Show
+    
+End Sub
+
+'******************************************************************************
+' Cette procédure prend comme paramètre le nom de programmation du CommandButton qui l'appelle
+' Elle permet de stocker la note choisie par l'utilisateur
+'******************************************************************************
+
+Public Sub Profil(ByVal nomProg As String)
+    
+    Dim i As Long, ligne As Long, annee As Long, age As Long, sommeNote As Long, nbVote As Long
+    Dim pseudo As String, pseudoConnecte As String, lettre As String, note As String
+    Dim ctrl As Variant, ctrl2 As Variant
+    
+    For i = 11 To Len(SheetPlanning.CommandButtonProfil.Caption)
+        pseudoConnecte = pseudoConnecte & Mid(SheetPlanning.CommandButtonProfil.Caption, i, 1)
+    Next i
+    
+    For Each ctrl In UserFormParticipant.Controls
+        If TypeName(ctrl) = "Label" And ctrl.Name = "LabelPseudoConducteur" And nomProg = "CommandButtonProfilConducteur" Then
+            pseudo = ctrl.Caption
+            Exit For
+        ElseIf TypeName(ctrl) = "Label" And ctrl.Name = "LabelPseudoPassager" & Mid(nomProg, Len(nomProg), 1) Then
+            pseudo = ctrl.Caption
+            Exit For
+        End If
+    Next ctrl
+    
+    If Mid(nomProg, 20, 8) = "Passager" Then
+        With UserFormProfilParticipant
+        .LabelNote.Visible = False
+        .LabelNote2.Visible = False
+        .Height = 246
+        End With
+    End If
+    
+    If pseudoConnecte = pseudo Then
+        UserFormProfilParticipant.Label1.Caption = "Votre Profil"
+    Else
+        lettre = UCase(Mid(pseudo, 1, 1))
+        If lettre = "A" Or lettre = "E" Or lettre = "I" Or lettre = "O" Or lettre = "U" Then
+            UserFormProfilParticipant.Label1.Caption = "Profil d'" & pseudo
+        Else
+            UserFormProfilParticipant.Label1.Caption = "Profil de " & pseudo
+        End If
+    End If
+    
+    ligne = 0
+    
+    Do
+        ligne = ligne + 1
+    Loop Until SheetUsager.Range("TableUsager[idUsager]")(ligne) = pseudo
+    
+    annee = Year(Date) - Year(SheetUsager.Range("TableUsager[dateNaissance]")(ligne))
+    If DateValue(SheetUsager.Range("TableUsager[dateNaissance]")(ligne)) <= DateAdd("yyyy", -annee, Date) Then
+        age = annee
+    Else
+        age = annee - 1
+    End If
+    
+    sommeNote = CLng(SheetUsager.Range("TableUsager[sommeNote]")(ligne))
+    nbVote = CLng(SheetUsager.Range("TableUsager[nbVote]")(ligne))
+    
+    If sommeNote <> 0 Then
+        note = IIf(nbVote = 1, sommeNote & "/5 - 1 vote", Round(sommeNote / nbVote, 1) & "/5 - " & nbVote & " votes")
+    Else
+        note = "Aucun vote"
+    End If
+    
+    With UserFormProfilParticipant
+    .LabelPseudo = SheetUsager.Range("TableUsager[idUsager]")(ligne)
+    .LabelNom = SheetUsager.Range("TableUsager[nom]")(ligne)
+    .LabelPrenom = SheetUsager.Range("TableUsager[prenom]")(ligne)
+    .LabelGenre = SheetUsager.Range("TableUsager[genre]")(ligne)
+    .LabelAge = IIf(age = 1, age & " an", age & " ans")
+    .LabelNote = note
+    End With
+    
+    If SheetUsager.Range("TableUsager[photo]")(ligne) <> "" Then
+        UserFormProfilParticipant.PhotoDeProfil.Picture = LoadPicture(SheetUsager.Range("TableUsager[photo]")(ligne))
+        UserFormProfilParticipant.PhotoDeProfil.PictureSizeMode = fmPictureSizeModeStretch
+    Else
+        UserFormProfilParticipant.PhotoDeProfil.Visible = False
+    End If
+    
+    UserFormProfilParticipant.Show
+    
+End Sub
+
+'******************************************************************************
+' Les procédures suivantes s'exécutes lors du click sur le CommandButtonProfil...
+' Elle appelle la procédure Profil en donnant leur nom de programmation comme paramètre
+'******************************************************************************
+
+Private Sub CommandButtonProfilConducteur_Click()
+    Profil "CommandButtonProfilConducteur"
+End Sub
+
+Private Sub CommandButtonProfilPassager1_Click()
+    Profil "CommandButtonProfilPassager1"
+End Sub
+
+Private Sub CommandButtonProfilPassager2_Click()
+    Profil "CommandButtonProfilPassager2"
+End Sub
+
+Private Sub CommandButtonProfilPassager3_Click()
+    Profil "CommandButtonProfilPassager3"
+End Sub
+
+Private Sub CommandButtonProfilPassager4_Click()
+    Profil "CommandButtonProfilPassager4"
+End Sub
+
+Private Sub CommandButtonProfilPassager5_Click()
+    Profil "CommandButtonProfilPassager5"
+End Sub
+
+Private Sub CommandButtonProfilPassager6_Click()
+    Profil "CommandButtonProfilPassager6"
+End Sub
+
+Private Sub CommandButtonProfilPassager7_Click()
+    Profil "CommandButtonProfilPassager7"
+End Sub
+
+Private Sub CommandButtonProfilPassager8_Click()
+    Profil "CommandButtonProfilPassager8"
+End Sub

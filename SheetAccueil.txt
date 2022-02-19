@@ -1,0 +1,22 @@
+Option Explicit
+
+'******************************************************************************
+' Cette procédure permet d'afficher le UserFormConnexion lorsque l'utilisateur
+' click sur le CommandButtonConnexion
+'******************************************************************************
+
+Private Sub CommandButtonConnexion_Click()
+
+    UserFormConnexion.Show
+
+End Sub
+
+'******************************************************************************
+' Cette procédure permet d'afficher le UserFormInscrire lorsque l'utilisateur
+' click sur le CommandButtonInscrire
+'******************************************************************************
+Private Sub CommandButtonInscrire_Click()
+
+    UserFormInscrire.Show
+
+End Sub

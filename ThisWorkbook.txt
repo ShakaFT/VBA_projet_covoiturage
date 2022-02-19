@@ -1,0 +1,19 @@
+'******************************************************************************
+' Cette procédure permet de diriger l'utilisateur sur la SheetAccueil à l'ouverture du classeur
+'******************************************************************************
+
+Private Sub Workbook_Open()
+    
+    SheetAccueil.Visible = xlSheetVisible
+    
+    SheetListeTrajets.Visible = xlSheetVeryHidden
+    SheetNote.Visible = xlSheetVeryHidden
+    SheetNotif.Visible = xlSheetVeryHidden
+    SheetParticipant.Visible = xlSheetVeryHidden
+    SheetPlanning.Visible = xlSheetVeryHidden
+    SheetTrajet.Visible = xlSheetVeryHidden
+    SheetTrajetsDisponibles.Visible = xlSheetVeryHidden
+    SheetUsager.Visible = xlSheetVeryHidden
+    SheetVille.Visible = xlSheetVeryHidden
+    
+End Sub

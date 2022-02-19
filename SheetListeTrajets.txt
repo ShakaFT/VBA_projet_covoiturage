@@ -1,0 +1,63 @@
+Option Explicit
+
+'******************************************************************************
+' Cette procédure redirige l'utilisateur sur la SheetPlanning lorsqu'il click
+' sur le CommandButtonRetourPlanning2
+'******************************************************************************
+
+Private Sub CommandButtonRetourPlanning2_Click()
+    
+    SheetPlanning.Visible = xlSheetVisible
+    SheetListeTrajets.Visible = xlSheetVeryHidden
+    
+End Sub
+
+'******************************************************************************
+' Cette procédure affiche dans la TableListeTrajets les trajets futurs de l'utilisateur
+'******************************************************************************
+
+Public Sub AfficherListeTrajets(ByVal ligne2 As Long, ByVal role As String)
+    
+    Dim ligne As Long
+    
+    If IsEmpty(SheetListeTrajets.Range("TableListeTrajets[idTrajet]")(1)) Then
+        ligne = 1
+    Else
+        ligne = SheetListeTrajets.Range("TableListeTrajets").Rows.Count + 1
+    End If
+    
+    With SheetListeTrajets
+    .Range("TableListeTrajets[idTrajet]")(ligne) = SheetTrajet.Range("TableTrajet[idTrajet]")(ligne2)
+    .Range("TableListeTrajets[Date de départ]")(ligne) = SheetTrajet.Range("TableTrajet[dateDebut]")(ligne2)
+    .Range("TableListeTrajets[Heure de départ]")(ligne) = SheetTrajet.Range("TableTrajet[heureDebut]")(ligne2)
+    .Range("D1").value = "Date darrivée"
+    .Range("TableListeTrajets[Date darrivée]")(ligne) = SheetTrajet.Range("TableTrajet[dateFin]")(ligne2)
+    .Range("D1").value = "Date d'arrivée"
+    .Range("E1").value = "Heure darrivée"
+    .Range("TableListeTrajets[Heure darrivée]")(ligne) = SheetTrajet.Range("TableTrajet[heureFin]")(ligne2)
+    .Range("E1").value = "Heure d'arrivée"
+    .Range("TableListeTrajets[Ville de départ]")(ligne) = SheetTrajet.Range("TableTrajet[nomVilleDepart]")(ligne2)
+    .Range("G1").value = "Ville darrivée"
+    .Range("TableListeTrajets[Ville darrivée]")(ligne) = SheetTrajet.Range("TableTrajet[nomVilleArrivee]")(ligne2)
+    .Range("G1").value = "Ville d'arrivée"
+    .Range("TableListeTrajets[Nombre de places disponibles]")(ligne) = SheetTrajet.Range("TableTrajet[nbPlacesDisponibles]")(ligne2)
+    .Range("TableListeTrajets[Prix]")(ligne) = SheetTrajet.Range("TableTrajet[prix]")(ligne2)
+    .Range("TableListeTrajets[Rôle]")(ligne) = role
+    End With
+    
+End Sub
+
+'******************************************************************************
+' Cette procédure trie les trajets futurs de l'utilisateur
+'******************************************************************************
+
+Public Sub TrierTrajets()
+    
+    With SheetListeTrajets.ListObjects("TableListeTrajets").Sort
+    .SortFields.Clear
+    .SortFields.Add Key:=Range("TableListeTrajets[Date de départ]"), SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:=xlSortNormal
+    .SortFields.Add Key:=Range("TableListeTrajets[Heure de départ]"), SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:=xlSortNormal
+    .Apply
+    End With
+    
+End Sub

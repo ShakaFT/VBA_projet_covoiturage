@@ -1,0 +1,185 @@
+Option Explicit
+
+'******************************************************************************
+' Cette procédure affiche le UserFormParticipant lors du click sur le CommandButtonParticipant
+'******************************************************************************
+
+Private Sub CommandButtonParticipant_Click()
+    
+    Dim idTrajet As String, tmp As String, pseudoConducteur As String, liste() As String
+    Dim i As Long, j As Long, h As Long, ligne As Long, ligne2 As Long, nbPassager As Long, test As Long, test2 As Long
+    Dim dateArrivee As Date, heureArrivee As Date
+    Dim ctrl As Variant
+    
+    test2 = -1
+    
+    i = 17
+    Do
+        idTrajet = idTrajet & Mid(ActiveCell, i, 1)
+        i = i + 1
+    Loop Until Not (IsNumeric(Mid(ActiveCell, i, 1)))
+    
+    Do
+        ligne = ligne + 1
+    Loop Until idTrajet = SheetTrajet.Range("TableTrajet[idTrajet]")(ligne)
+    
+' On remplit la liste avec les pseudo des passagers
+    
+    For ligne2 = 1 To SheetParticipant.Range("TableParticipant").Rows.Count
+        If idTrajet = SheetParticipant.Range("TableParticipant[idTrajet]")(ligne2) Then
+            j = j + 1
+            ReDim Preserve liste(j)
+            liste(j - 1) = SheetParticipant.Range("TableParticipant[idUsager]")(ligne2)
+        End If
+    Next ligne2
+    
+' On teste si la liste est vide
+
+    On Error Resume Next
+        Debug.Print UBound(liste)
+    If Err.Number <> 0 Then
+        ReDim Preserve liste(1)
+        liste(0) = ""
+    End If
+    
+    pseudoConducteur = SheetTrajet.Range("TableTrajet[pseudoConducteur]")(ligne)
+    UserFormParticipant.LabelPseudoConducteur = pseudoConducteur
+    
+    For Each ctrl In UserFormParticipant.Controls
+        If TypeName(ctrl) = "Label" And InStr(ctrl.Name, "PseudoPassager") <> 0 And liste(h) <> "" Then
+            ctrl.Caption = liste(h)
+            h = h + 1
+            nbPassager = nbPassager + 1
+        ElseIf TypeName(ctrl) = "Label" And InStr(ctrl.Name, "PseudoPassager") <> 0 Then
+            ctrl.Visible = False
+        ElseIf TypeName(ctrl) = "Label" And InStr(ctrl.Name, "LabelPassager") <> 0 Then
+            test = test + 1
+            If test > nbPassager Then
+                ctrl.Visible = False
+            End If
+        ElseIf TypeName(ctrl) = "CommandButton" And InStr(ctrl.Name, "Note") = 0 Then
+            test2 = test2 + 1
+            If test2 > nbPassager Then
+                ctrl.Visible = False
+            End If
+        End If
+    Next ctrl
+    
+    dateArrivee = DateValue(Replace(LabelArrivee, "h", ":"))
+    heureArrivee = TimeValue(Replace(LabelArrivee, "h", ":"))
+    
+' On vérifie si le trajet est bien passé et si le conducteur n'est pas l'utilisateur qui est connecté
+    
+    If dateArrivee > Date Or (dateArrivee = Date And heureArrivee > TimeValue(Now)) Or Mid(LabelParticipant, 11, Len(LabelParticipant)) = "conducteur" Then
+        UserFormParticipant.CommandButtonNote.Visible = False
+    End If
+    
+    UserFormParticipant.Height = IIf(nbPassager >= 4, 373.2 - 30 * (8 - nbPassager), 373.2 - 30 * 4)
+    
+    UserFormInfoTrajet.Hide
+    UserFormParticipant.Show
+    UserFormInfoTrajet.Show
+    
+End Sub
+
+'******************************************************************************
+' Cette procédure permet de supprimer ou quitter (selon si l'utilisateur est
+' conducteur ou passager) un trajet lors du click sur le CommandButtonSupprimerTrajet
+'******************************************************************************
+
+Private Sub CommandButtonSupprimerTrajet_Click()
+    
+    Dim pseudoConnecte As String, dateDepart As String, heureDepart As String, villeDepart As String, villeArrivee As String, liste() As String
+    Dim i As Long, j As Long, h As Long, x As Long, y As Long, idTrajet As Long, ligne As Long, ligne2 As Long, compteur As Long, test As Long
+    Dim reponse As Variant
+    
+    For i = 11 To Len(SheetPlanning.CommandButtonProfil.Caption)
+            pseudoConnecte = pseudoConnecte & Mid(SheetPlanning.CommandButtonProfil.Caption, i, 1)
+    Next i
+    
+    j = 17
+    Do
+        idTrajet = idTrajet & Mid(ActiveCell, j, 1)
+        j = j + 1
+    Loop Until Not (IsNumeric(Mid(ActiveCell, j, 1)))
+    
+    If CommandButtonSupprimerTrajet.Caption = "Supprimer le trajet" Then
+        reponse = MsgBox("Êtes-vous vraiment sûr de vouloir supprimer le trajet numéro " & idTrajet & " ?", vbYesNo + vbQuestion, _
+        "Confirmation de suppression")
+    
+        If reponse = vbNo Then
+            Exit Sub
+        End If
+        
+        Do
+            ligne = ligne + 1
+        Loop Until idTrajet = SheetTrajet.Range("TableTrajet[idTrajet]")(ligne)
+        
+' On rempli la liste avec les pseudo des passagers
+    
+        For x = 1 To SheetParticipant.Range("TableParticipant").Rows.Count
+            If idTrajet = SheetParticipant.Range("TableParticipant[idTrajet]")(x) Then
+                ReDim Preserve liste(y)
+                liste(y) = SheetParticipant.Range("TableParticipant[idUsager]")(x)
+                y = y + 1
+            End If
+        Next x
+        
+        dateDepart = SheetTrajet.Range("TableTrajet[dateDebut]")(ligne)
+        heureDepart = Format(SheetTrajet.Range("TableTrajet[heureDebut]")(ligne), "hh:mm")
+        villeDepart = SheetTrajet.Range("TableTrajet[nomVilleDepart]")(ligne)
+        villeArrivee = SheetTrajet.Range("TableTrajet[nomVilleArrivee]")(ligne)
+        
+' On test si la liste est vide
+
+        On Error Resume Next
+            Debug.Print UBound(liste)
+        If Err.Number = 0 Then
+            For test = 0 To UBound(liste)
+                SheetNotif.NotificationSuppression idTrajet, liste(test), DateValue(dateDepart), TimeValue(Format(heureDepart, "hh:mm")), _
+                villeDepart, villeArrivee
+            Next test
+        End If
+        
+        SheetTrajet.Range("TableTrajet").Rows(ligne).EntireRow.Delete
+        
+        For h = 1 To SheetParticipant.Range("TableParticipant").Rows.Count
+            If SheetParticipant.Range("TableParticipant[idTrajet]")(h - compteur) = idTrajet Then
+                SheetParticipant.Range("TableParticipant").Rows(h - compteur).EntireRow.Delete
+                compteur = compteur + 1
+            End If
+        Next h
+        
+    Else
+        reponse = MsgBox("Êtes-vous vraiment sûr de vouloir quitter le trajet ?", vbYesNo + vbQuestion, "Quitter le trajet")
+    
+        If reponse = vbNo Then
+            Exit Sub
+        End If
+        
+        Do
+            ligne2 = ligne2 + 1
+        Loop Until idTrajet = SheetParticipant.Range("TableParticipant[idTrajet]")(ligne2) _
+        And pseudoConnecte = SheetParticipant.Range("TableParticipant[idUsager]")(ligne2)
+        
+        SheetParticipant.Range("TableParticipant").Rows(ligne2).EntireRow.Delete
+        
+        Do
+            ligne = ligne + 1
+        Loop Until idTrajet = SheetTrajet.Range("TableTrajet[idTrajet]")(ligne)
+        
+        SheetTrajet.Range("TableTrajet[nbPlacesDisponibles]")(ligne) = SheetTrajet.Range("TableTrajet[nbPlacesDisponibles]")(ligne) + 1
+        
+    End If
+    
+    SheetPlanning.AfficherPlanning DateValue(SheetPlanning.CommandButtonDate.Caption)
+    Unload UserFormInfoTrajet
+    
+End Sub
+
+Private Sub CommandButtonMap_Click()
+
+    UserFormMap.Show
+
+End Sub
+

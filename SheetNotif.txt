@@ -1,0 +1,54 @@
+Option Explicit
+
+'******************************************************************************
+' Cette procédure permet l'affectation des informations du trajet supprimé dans la TableNotif
+' Elle prend comme paramètre les informations du trajet supprimés
+'******************************************************************************
+
+Public Sub NotificationSuppression(ByVal idTrajet As String, ByVal idUsager As String, ByVal dateDepart As Date, ByVal heureDepart As Date, _
+                             ByVal villeDepart As String, ByVal villeArrivee As String)
+
+    Dim ligne As Long
+    
+    If IsEmpty(SheetNotif.Range("TableNotif[idTrajet]")(1)) Then
+        ligne = 1
+    Else
+        ligne = SheetNotif.Range("TableNotif").Rows.Count + 1
+    End If
+    
+    With SheetNotif
+    .Range("TableNotif[idTrajet]")(ligne) = idTrajet
+    .Range("TableNotif[idUsager]")(ligne) = idUsager
+    .Range("TableNotif[dateDepart]")(ligne) = dateDepart
+    .Range("TableNotif[heureDepart]")(ligne) = heureDepart
+    .Range("TableNotif[villeDepart]")(ligne) = villeDepart
+    .Range("TableNotif[villeArrivee]")(ligne) = villeArrivee
+    End With
+    
+End Sub
+
+'******************************************************************************
+' Cette fonction retourne le numéro de la ligne à laquelle se situe l'utilisateur
+' connecté s'il a eu un trajet supprimé depuis sa dernière connexion.
+' Sinon elle retourne 0
+'******************************************************************************
+
+Public Function VerifierNotif() As Long
+
+    Dim pseudoConnecte As String
+    Dim i As Long, j As Long
+    
+    For i = 11 To Len(SheetPlanning.CommandButtonProfil.Caption)
+        pseudoConnecte = pseudoConnecte & Mid(SheetPlanning.CommandButtonProfil.Caption, i, 1)
+    Next i
+    
+    For j = 1 To SheetNotif.Range("TableNotif").Rows.Count
+        If pseudoConnecte = SheetNotif.Range("TableNotif[idUsager]")(j) Then
+            VerifierNotif = j
+            Exit Function
+        End If
+    Next j
+    
+    VerifierNotif = 0
+    
+End Function

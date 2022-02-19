@@ -1,0 +1,52 @@
+Option Explicit
+
+'******************************************************************************
+' Cette procédure affiche le UserFormModifierProfil lors du click sur le
+' CommandButtonModifierProfil
+'******************************************************************************
+
+Private Sub CommandButtonModifierProfil_Click()
+    
+    Dim pseudo As String
+    Dim ligne As Long, i As Long
+    Dim reponse As Variant
+
+    reponse = MsgBox("Voulez-vous modifier votre profil ? Attention, certaines informations ne sont pas modifiables.", _
+              (vbYesNo + vbInformation), "Modifier le profil")
+              
+    If reponse = vbNo Then
+        Exit Sub
+    End If
+    
+    For i = 11 To Len(SheetPlanning.CommandButtonProfil.Caption)
+        pseudo = pseudo & Mid(SheetPlanning.CommandButtonProfil.Caption, i, 1)
+    Next i
+    
+    Do
+        ligne = ligne + 1
+    Loop Until pseudo = SheetUsager.Range("TableUsager[idUsager]")(ligne)
+    
+' On affecte les valeurs par défaut des text/comboBox avec les informations actuelles de l'utilisateur
+    
+    With UserFormModifierProfil
+    .TextBoxNom = SheetUsager.Range("TableUsager[nom]")(ligne)
+    .TextBoxPrenom = SheetUsager.Range("TableUsager[prenom]")(ligne)
+    .TextBoxTelephone = Format(SheetUsager.Range("TableUsager[telephone]")(ligne), "00 00 00 00 00")
+    .TextBoxMdp1 = SheetUsager.Range("TableUsager[MotDePasse]")(ligne)
+    .TextBoxMdp2 = SheetUsager.Range("TableUsager[MotDePasse]")(ligne)
+    .LabelImage = SheetUsager.Range("TableUsager[photo]")(ligne)
+    .PhotoDeProfil.Picture = LoadPicture(UserFormModifierProfil.LabelImage)
+    .PhotoDeProfil.PictureSizeMode = fmPictureSizeModeStretch
+    End With
+    
+    If SheetUsager.Range("TableUsager[genre]")(ligne) = "Homme" Then
+        UserFormModifierProfil.OptionButtonHomme = True
+    Else
+        UserFormModifierProfil.OptionButtonFemme = True
+    End If
+    
+    Unload UserFormProfil
+    UserFormModifierProfil.Show
+    
+End Sub
+
